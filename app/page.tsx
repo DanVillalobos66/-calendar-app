@@ -30,10 +30,14 @@ export default function Home() {
   const [editingName, setEditingName] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState<Record<string, boolean>>({});
 
+  // Dark mode state
+  const [dark, setDark] = useState(false);
+
   const [user, setUser] = useState<any>(null);
   const [email, setEmail] = useState("");
   // Toast for feedback UX
   const [toast, setToast] = useState("");
+  const [debounceTimers, setDebounceTimers] = useState<Record<string, any>>({});
 
   const login = async () => {
     if (!supabase) return alert("Supabase no configurado");
@@ -104,10 +108,25 @@ export default function Home() {
       console.error(error);
     }
   };
+
+  const debouncedSave = (r: any) => {
+    const key = getKey(r);
+
+    if (debounceTimers[key]) {
+      clearTimeout(debounceTimers[key]);
+    }
+
+    const timer = setTimeout(() => {
+      autoSaveRow(r);
+    }, 800);
+
+    setDebounceTimers((prev) => ({ ...prev, [key]: timer }));
+  };
   // Save a single reservation row to supabase
   const saveRow = async (r: any) => {
     if (!supabase) return alert("Supabase no configurado");
     const key = getKey(r);
+    setSaving((prev) => ({ ...prev, [key]: true }));
 
     const { error } = await supabase.from("reservations_manual").upsert(
       [
@@ -124,8 +143,11 @@ export default function Home() {
       { onConflict: "property,check_in,check_out" },
     );
 
+    setSaving((prev) => ({ ...prev, [key]: false }));
+
     if (error) {
       console.error(error);
+      setSaving((prev) => ({ ...prev, [key]: false }));
       alert(error.message);
     } else {
       // Restore success feedback as toast
@@ -227,7 +249,14 @@ export default function Home() {
 
     loadFromDB();
   }, []);
-
+  const propertyColors: Record<string, string> = {
+    "VILLAS TOH": "bg-blue-500 text-white",
+    "NEEA 102": "bg-green-500 text-white",
+    "NEEA 103": "bg-purple-500 text-white",
+    "NEEA 201": "bg-orange-500 text-white",
+    "NEEA 202": "bg-pink-500 text-white",
+    "NEEA 303": "bg-indigo-500 text-white",
+  };
   const monthlyIncome = Object.entries(totals).reduce(
     (acc: any, [key, value]) => {
       const [, checkIn] = key.split("|");
@@ -243,6 +272,8 @@ export default function Home() {
   );
 
   const months = Object.keys(monthlyIncome).sort();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const userProperties = role === "admin" ? properties : properties.slice(0, 2);
 
   return (
@@ -252,529 +283,569 @@ export default function Home() {
           {toast}
         </div>
       )}
-      <div className="flex min-h-screen bg-gray-100">
-      {/* SIDEBAR */}
       <div
-        className={`${collapsed ? "w-16" : "w-64"} bg-white text-gray-800 border-r flex flex-col transition-all duration-300`}
+        className={`flex min-h-screen ${dark ? "bg-gray-900 text-white" : "bg-gray-100"}`}
       >
-        <div className="p-4 font-semibold text-lg border-b flex items-center justify-between">
-          {!collapsed && <span>GreenState</span>}
-          <button
-            onClick={() => setCollapsed(!collapsed)}
-            className="text-gray-500 hover:text-black"
-          >
-            ☰
-          </button>
-        </div>
-
+        {/* SIDEBAR */}
         <div
-          className={`flex-1 p-2 text-sm ${collapsed ? "items-center" : ""}`}
+          className={`${collapsed ? "w-16" : "w-64"} bg-white text-gray-800 border-r flex flex-col transition-all duration-300`}
         >
-          <ul className="space-y-1">
-            <li
-              onClick={() => setView("informacion")}
-              className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${
-                view === "informacion"
-                  ? "bg-gray-100 text-black"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
+          <div className="p-4 font-semibold text-lg border-b flex items-center justify-between">
+            {!collapsed && <span>GreenState</span>}
+            <button
+              onClick={() => setCollapsed(!collapsed)}
+              className="text-gray-500 hover:text-black"
             >
-              {!collapsed && "Informacion"}
-            </li>
-
-            <li
-              onClick={() => setView("calendario")}
-              className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${
-                view === "calendario"
-                  ? "bg-gray-100 text-black"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              {!collapsed && "Calendario"}
-            </li>
-
-            <li
-              onClick={() => setView("reservations")}
-              className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${
-                view === "reservations"
-                  ? "bg-gray-100 text-black"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
-            >
-              {!collapsed && "Reservations"}
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      {/* MAIN */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* HEADER */}
-        <div className="h-14 bg-white border-b flex items-center px-6 justify-between">
-          <h1 className="font-semibold text-gray-700">
-            {view === "calendario"
-              ? "Calendario"
-              : view === "informacion"
-                ? "Información"
-                : "Reservations"}
-          </h1>
-
-          <div className="flex items-center gap-3">
-            <input
-              placeholder="Search..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="border rounded px-3 py-1 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-
-            <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">
-              Export
+              ☰
             </button>
+          </div>
 
-            <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">
-              Add Reservation
-            </button>
-            {user ? (
-              <button
-                onClick={logout}
-                className="text-sm bg-gray-200 px-3 py-1 rounded"
+          <div
+            className={`flex-1 p-2 text-sm ${collapsed ? "items-center" : ""}`}
+          >
+            <ul className="space-y-1">
+              <li
+                onClick={() => setView("informacion")}
+                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${
+                  view === "informacion"
+                    ? "bg-gray-100 text-black"
+                    : "text-gray-500 hover:bg-gray-100"
+                }`}
               >
-                Logout
-              </button>
-            ) : (
-              <div className="flex gap-2">
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email"
-                  className="border px-2 py-1 text-sm"
-                />
-                <button
-                  onClick={login}
-                  className="bg-green-600 text-white px-3 py-1 rounded text-sm"
-                >
-                  Login
-                </button>
-              </div>
-            )}
+                {!collapsed && "Informacion"}
+              </li>
+
+              <li
+                onClick={() => setView("calendario")}
+                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${
+                  view === "calendario"
+                    ? "bg-gray-100 text-black"
+                    : "text-gray-500 hover:bg-gray-100"
+                }`}
+              >
+                {!collapsed && "Calendario"}
+              </li>
+
+              <li
+                onClick={() => setView("reservations")}
+                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${
+                  view === "reservations"
+                    ? "bg-gray-100 text-black"
+                    : "text-gray-500 hover:bg-gray-100"
+                }`}
+              >
+                {!collapsed && "Reservations"}
+              </li>
+            </ul>
           </div>
         </div>
 
-        {/* CONTENT */}
-        <div className="p-6 overflow-y-auto flex-1 pb-20">
-          <div>
-            <div className="space-y-6">
-              {/* CARDS */}
-              <div className="grid grid-cols-4 gap-4">
-                <div className="bg-white rounded-2xl border p-4">
-                  <p className="text-sm text-gray-400">Total Reservas</p>
-                  <p className="text-2xl font-semibold text-gray-800">
-                    {reservations.length}
-                  </p>
+        {/* MAIN */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* HEADER */}
+          <div className="h-14 bg-white border-b flex items-center px-6 justify-between">
+            <h1 className="font-semibold text-gray-700">
+              {view === "calendario"
+                ? "Calendario"
+                : view === "informacion"
+                  ? "Información"
+                  : "Reservations"}
+            </h1>
+
+            <div className="flex items-center gap-3">
+              <input
+                placeholder="Search..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="border rounded px-3 py-1 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+
+              <button
+                onClick={() => setDark(!dark)}
+                className="text-xs px-2 py-1 border rounded"
+              >
+                {dark ? "Light" : "Dark"}
+              </button>
+
+              <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">
+                Export
+              </button>
+
+              <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">
+                Add Reservation
+              </button>
+              {user ? (
+                <button
+                  onClick={logout}
+                  className="text-sm bg-gray-200 px-3 py-1 rounded"
+                >
+                  Logout
+                </button>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="email"
+                    className="border px-2 py-1 text-sm"
+                  />
+                  <button
+                    onClick={login}
+                    className="bg-green-600 text-white px-3 py-1 rounded text-sm"
+                  >
+                    Login
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* CONTENT */}
+          <div className="p-6 overflow-y-auto flex-1 pb-20">
+            <div>
+              <div className="space-y-6">
+                {/* CARDS */}
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
+                    <p className="text-sm text-gray-400">Total Reservas</p>
+                    <p className="text-2xl font-semibold text-gray-800">
+                      {reservations.length}
+                    </p>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
+                    <p className="text-sm text-gray-400">Días Ocupados</p>
+                    <p className="text-2xl font-semibold text-gray-800">
+                      {
+                        new Set(
+                          (Array.isArray(reservations)
+                            ? reservations
+                            : []
+                          ).flatMap((r) => {
+                            const days = [];
+                            let current = new Date(r.checkIn);
+                            const end = new Date(r.checkOut);
+                            while (current <= end) {
+                              days.push(current.toISOString().slice(0, 10));
+                              current.setDate(current.getDate() + 1);
+                            }
+                            return days;
+                          }),
+                        ).size
+                      }
+                    </p>
+                  </div>
+
+                  <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
+                    <p className="text-sm text-gray-400">Propiedades</p>
+                    <p className="text-2xl font-semibold text-gray-800">
+                      {
+                        new Set(
+                          (Array.isArray(reservations) ? reservations : []).map(
+                            (r) => r.name,
+                          ),
+                        ).size
+                      }
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
+                    <p className="text-sm text-gray-400">Ingresos Totales</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      $
+                      {Object.values(totals)
+                        .map((v) =>
+                          Number((v || "").replace(/[^0-9]/g, "") || 0),
+                        )
+                        .reduce((a, b) => a + b, 0)
+                        .toLocaleString()}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border p-4">
-                  <p className="text-sm text-gray-400">Días Ocupados</p>
-                  <p className="text-2xl font-semibold text-gray-800">
-                    {
-                      new Set(
-                        (Array.isArray(reservations)
-                          ? reservations
-                          : []
-                        ).flatMap((r) => {
-                          const days = [];
-                          let current = new Date(r.checkIn);
-                          const end = new Date(r.checkOut);
-                          while (current <= end) {
-                            days.push(current.toISOString().slice(0, 10));
-                            current.setDate(current.getDate() + 1);
-                          }
-                          return days;
-                        }),
-                      ).size
-                    }
-                  </p>
-                </div>
+                {/* GRAFICA SIMPLE */}
+                <div className="bg-white rounded-2xl border p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    Ocupación (visual)
+                  </h3>
 
-                <div className="bg-white rounded-2xl border p-4">
-                  <p className="text-sm text-gray-400">Propiedades</p>
-                  <p className="text-2xl font-semibold text-gray-800">
-                    {
-                      new Set(
-                        (Array.isArray(reservations) ? reservations : []).map(
-                          (r) => r.name,
-                        ),
-                      ).size
-                    }
-                  </p>
-                </div>
-                <div className="bg-white rounded-2xl border p-4">
-                  <p className="text-sm text-gray-400">Ingresos Totales</p>
-                  <p className="text-2xl font-semibold text-gray-800">
-                    $
-                    {Object.values(totals)
-                      .map((v) => Number((v || "").replace(/[^0-9]/g, "") || 0))
-                      .reduce((a, b) => a + b, 0)
-                      .toLocaleString()}
-                  </p>
-                </div>
-              </div>
+                  <div className="flex items-end gap-2 h-32">
+                    {(() => {
+                      const today = new Date();
 
-              {/* GRAFICA SIMPLE */}
-              <div className="bg-white rounded-2xl border p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Ocupación (visual)
-                </h3>
+                      const days = Array.from({ length: 7 }).map((_, i) => {
+                        const d = new Date();
+                        d.setDate(today.getDate() - (6 - i));
+                        return d;
+                      });
 
-                <div className="flex items-end gap-2 h-32">
-                  {(() => {
-                    const today = new Date();
+                      const counts = days.map((day) => {
+                        const dayStr = day.toISOString().slice(0, 10);
+                        return reservations.filter((r) => {
+                          return dayStr >= r.checkIn && dayStr <= r.checkOut;
+                        }).length;
+                      });
 
-                    const days = Array.from({ length: 7 }).map((_, i) => {
-                      const d = new Date();
-                      d.setDate(today.getDate() - (6 - i));
-                      return d;
-                    });
+                      const max = Math.max(...counts, 1);
 
-                    const counts = days.map((day) => {
-                      const dayStr = day.toISOString().slice(0, 10);
-                      return reservations.filter((r) => {
-                        return dayStr >= r.checkIn && dayStr <= r.checkOut;
-                      }).length;
-                    });
-
-                    const max = Math.max(...counts, 1);
-
-                    return counts.map((count, i) => (
-                      <div
-                        key={i}
-                        className="flex-1 flex flex-col items-center"
-                      >
+                      return counts.map((count, i) => (
                         <div
-                          className="w-full bg-blue-500 rounded-t"
-                          style={{ height: `${(count / max) * 100}%` }}
-                        />
-                        <span className="text-[10px] text-gray-400 mt-1">
-                          {days[i].getDate()}
-                        </span>
-                      </div>
-                    ));
-                  })()}
+                          key={i}
+                          className="flex-1 flex flex-col items-center"
+                        >
+                          <div
+                            className="w-full bg-blue-500 rounded-t"
+                            style={{ height: `${(count / max) * 100}%` }}
+                          />
+                          <span className="text-[10px] text-gray-400 mt-1">
+                            {days[i].getDate()}
+                          </span>
+                        </div>
+                      ));
+                    })()}
+                  </div>
                 </div>
-              </div>
 
-              {/* MONTHLY INCOME CHART */}
-              <div className="bg-white rounded-2xl border p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Ingresos por mes 💰
-                </h3>
+                {/* MONTHLY INCOME CHART */}
+                <div className="bg-white rounded-2xl border p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    Ingresos por mes 💰
+                  </h3>
 
-                <div className="flex items-end gap-2 h-40">
-                  {months.map((m, i) => {
-                    const max = Math.max(
-                      ...(Object.values(monthlyIncome) as number[]),
+                  <div className="flex items-end gap-2 h-40">
+                    {months.map((m, i) => {
+                      const max = Math.max(
+                        ...(Object.values(monthlyIncome) as number[]),
+                      );
+                      const value = monthlyIncome[m];
+
+                      return (
+                        <div
+                          key={i}
+                          className="flex-1 flex flex-col items-center"
+                        >
+                          <div
+                            className="w-full bg-green-500 rounded-t"
+                            style={{ height: `${(value / max) * 100}%` }}
+                          />
+                          <span className="text-[10px] text-gray-400 mt-1">
+                            {m.slice(5)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* MULTI PROPIEDADES */}
+                <div className="bg-white rounded-2xl border p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    Propiedades
+                  </h3>
+
+                  {[
+                    "VILLAS TOH",
+                    "NEEA 102",
+                    "NEEA 103",
+                    "NEEA 201",
+                    "NEEA 202",
+                    "NEEA 303",
+                  ].map((prop) => {
+                    const propReservations = reservations.filter(
+                      (r) => r.name === prop,
                     );
-                    const value = monthlyIncome[m];
+
+                    const totalIncome = propReservations.reduce((acc, r) => {
+                      const key = getKey(r);
+                      const value = (totals[key] || "").replace(/[^0-9]/g, "");
+                      return acc + (value ? Number(value) : 0);
+                    }, 0);
 
                     return (
                       <div
-                        key={i}
-                        className="flex-1 flex flex-col items-center"
+                        key={prop}
+                        className="flex justify-between items-center border-b py-3"
                       >
-                        <div
-                          className="w-full bg-green-500 rounded-t"
-                          style={{ height: `${(value / max) * 100}%` }}
-                        />
-                        <span className="text-[10px] text-gray-400 mt-1">
-                          {m.slice(5)}
+                        <span className="font-medium text-gray-700">
+                          {prop}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          {propReservations.length} reservas · $
+                          {totalIncome.toLocaleString()}
                         </span>
                       </div>
                     );
                   })}
                 </div>
               </div>
+              <div className="mt-6">
+                <div className="bg-white rounded-lg border">
+                  {/* TABLE HEADER */}
+                  <div className="grid grid-cols-7 text-sm font-medium text-gray-700 border-b p-3">
+                    <div>Guest</div>
+                    <div>Check-in</div>
+                    <div>Check-out</div>
+                    <div>Channel</div>
+                    <div className="text-center">Total</div>
+                    <div className="text-center">Nombre</div>
+                    <div>Status</div>
+                  </div>
 
-              {/* MULTI PROPIEDADES */}
-              <div className="bg-white rounded-2xl border p-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                  Propiedades
-                </h3>
+                  {/* DYNAMIC ROWS */}
+                  {reservations
+                    .sort(
+                      (a, b) =>
+                        new Date(a.checkIn).getTime() -
+                        new Date(b.checkIn).getTime(),
+                    )
+                    .filter((r) => {
+                      const key = getKey(r);
+                      const guest = (names[key] || "").toLowerCase();
 
-                {[
-                  "VILLAS TOH",
-                  "NEEA 102",
-                  "NEEA 103",
-                  "NEEA 201",
-                  "NEEA 202",
-                  "NEEA 303",
-                ].map((prop) => {
-                  const propReservations = reservations.filter(
-                    (r) => r.name === prop,
-                  );
-
-                  const totalIncome = propReservations.reduce((acc, r) => {
-                    const key = getKey(r);
-                    const value = (totals[key] || "").replace(/[^0-9]/g, "");
-                    return acc + (value ? Number(value) : 0);
-                  }, 0);
-
-                  return (
-                    <div
-                      key={prop}
-                      className="flex justify-between items-center border-b py-3"
-                    >
-                      <span className="font-medium text-gray-700">{prop}</span>
-                      <span className="text-sm text-gray-500">
-                        {propReservations.length} reservas · $
-                        {totalIncome.toLocaleString()}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="mt-6">
-              <div className="bg-white rounded-lg border">
-                {/* TABLE HEADER */}
-                <div className="grid grid-cols-7 text-sm font-medium text-gray-700 border-b p-3">
-                  <div>Guest</div>
-                  <div>Check-in</div>
-                  <div>Check-out</div>
-                  <div>Channel</div>
-                  <div className="text-center">Total</div>
-                  <div className="text-center">Nombre</div>
-                  <div>Status</div>
-                </div>
-
-                {/* DYNAMIC ROWS */}
-                {reservations
-                  .sort(
-                    (a, b) =>
-                      new Date(a.checkIn).getTime() -
-                      new Date(b.checkIn).getTime(),
-                  )
-                  .filter((r) => {
-                    const key = getKey(r);
-                    const guest = (names[key] || "").toLowerCase();
-
-                    return (
-                      (r.name.toLowerCase().includes(search.toLowerCase()) &&
-                        userProperties.includes(r.name)) ||
-                      guest.includes(search.toLowerCase())
-                    );
-                  })
-                  .map((r, i) => (
-                    <div
-                      key={i}
-                      className="grid grid-cols-7 p-3 text-sm text-gray-800 border-b hover:bg-gray-100 hover:shadow-sm transition"
-                    >
-                      <div className="font-medium text-gray-900">{r.name}</div>
-                      <div>{r.checkIn}</div>
-                      <div>{r.checkOut}</div>
-                      <div>
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${
-                            r.channel === "Website"
-                              ? "bg-orange-100 text-orange-600"
-                              : "bg-blue-100 text-blue-600"
-                          }`}
-                        >
-                          {r.channel}
-                        </span>
-                      </div>
-                      <div className="flex flex-col items-center justify-center">
-                        {editing[getKey(r)] ? (
-                          <div className="flex items-center gap-1">
-                            <span className="text-gray-500 text-sm">$</span>
-                            <input
-                              autoFocus
-                              value={
-                                typeof totals[getKey(r)] === "string"
-                                  ? totals[getKey(r)]
-                                  : ""
-                              }
-                              onChange={(e) => {
-                                const raw = String(e.target.value || "").replace(
-                                  /[^0-9]/g,
-                                  "",
-                                );
-                                setTotals((prev) => ({
-                                  ...prev,
-                                  [getKey(r)]: raw === "" ? "" : raw,
-                                }));
-                              }}
-                              onBlur={() => {
-                                // delay to allow typing stability
-                                setTimeout(() => {
-                                  setEditing((prev) => ({
-                                    ...prev,
-                                    [getKey(r)]: false,
-                                  }));
-                                }, 150);
-                              }}
-                              placeholder="   "
-                              className="w-20 bg-white border border-gray-300 rounded-md px-2 py-1 text-sm text-gray-800 text-right focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                          </div>
-                        ) : (
-                          <div
-                            onClick={() =>
-                              setEditing((prev) => ({
-                                ...prev,
-                                [getKey(r)]: true,
-                              }))
-                            }
-                            className="flex items-center justify-center cursor-pointer hover:bg-gray-100 px-2 py-1 rounded-md"
+                      return (
+                        (r.name.toLowerCase().includes(search.toLowerCase()) &&
+                          userProperties.includes(r.name)) ||
+                        guest.includes(search.toLowerCase())
+                      );
+                    })
+                    .map((r, i) => (
+                      <div
+                        key={i}
+                        className="grid grid-cols-7 p-3 text-sm text-gray-800 border-b hover:bg-gray-100 hover:shadow-sm transition"
+                      >
+                        <div className="font-medium text-gray-900">
+                          {r.name}
+                        </div>
+                        <div>{r.checkIn}</div>
+                        <div>{r.checkOut}</div>
+                        <div>
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              r.channel === "Website"
+                                ? "bg-orange-100 text-orange-600"
+                                : "bg-blue-100 text-blue-600"
+                            }`}
                           >
-                            <span className="text-sm text-gray-800">
-                              {(() => {
-                                const raw = String(totals[getKey(r)] ?? "").replace(/[^0-9]/g, "");
-                                if (!raw) return "";
-                                const num = parseInt(raw, 10);
-                                if (isNaN(num)) return "";
-                                return `$${num.toLocaleString()}`;
-                              })()}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex justify-center items-center">
-                        {editingName[getKey(r)] ? (
-                          <>
-                            <input
-                              autoFocus
-                              value={names[getKey(r)] || ""}
-                              onChange={(e) =>
-                                handleNameChange(r, e.target.value)
-                              }
-                              onBlur={() =>
-                                setEditingName((prev) => ({
+                            {r.channel}
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center justify-center">
+                          {editing[getKey(r)] ? (
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500 text-sm">$</span>
+                              <input
+                                autoFocus
+                                value={
+                                  typeof totals[getKey(r)] === "string"
+                                    ? totals[getKey(r)]
+                                    : ""
+                                }
+                                onChange={(e) => {
+                                  const raw = String(
+                                    e.target.value || "",
+                                  ).replace(/[^0-9]/g, "");
+                                  setTotals((prev) => ({
+                                    ...prev,
+                                    [getKey(r)]: raw === "" ? "" : raw,
+                                  }));
+
+                                  debouncedSave(r);
+                                }}
+                                onBlur={() => {
+                                  // delay to allow typing stability
+                                  setTimeout(() => {
+                                    setEditing((prev) => ({
+                                      ...prev,
+                                      [getKey(r)]: false,
+                                    }));
+                                  }, 150);
+                                }}
+                                placeholder="   "
+                                className="w-20 bg-white border border-gray-300 rounded-md px-2 py-1 text-sm text-gray-800 text-right focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                              />
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() =>
+                                setEditing((prev) => ({
                                   ...prev,
-                                  [getKey(r)]: false,
+                                  [getKey(r)]: true,
                                 }))
                               }
-                              placeholder="Nombre"
-                              className="w-28 bg-white border border-gray-300 rounded-md px-2 py-1 text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                          </>
-                        ) : (
-                          <span
-                            onClick={() =>
-                              setEditingName((prev) => ({
-                                ...prev,
-                                [getKey(r)]: true,
-                              }))
-                            }
-                            className="w-28 text-center text-sm text-gray-700 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded-md"
-                          >
-                            {names[getKey(r)] || "---"}
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`px-2 py-1 rounded text-xs font-medium ${
-                            r.status === "Reserved"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-green-100 text-green-700"
-                          }`}
-                        >
-                          {r.status}
-                        </span>
-                        <button
-                          onClick={() => saveRow(r)}
-                          className="bg-green-600 text-white text-xs px-2 py-1 rounded hover:bg-green-700"
-                        >
-                          Save
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-
-            <div className="mt-6">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-                {/* HEADER */}
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-semibold text-gray-800 tracking-tight">
-                    {new Date(month + "-01").toLocaleString("es-MX", {
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </h2>
-
-                  <select
-                    value={month}
-                    onChange={(e) => setMonth(e.target.value)}
-                    className="border border-gray-200 px-3 py-1.5 rounded-lg text-sm bg-gray-50"
-                  >
-                    <option value="2026-04">Abril 2026</option>
-                    <option value="2026-05">Mayo 2026</option>
-                    <option value="2026-06">Junio 2026</option>
-                  </select>
-                </div>
-
-                {/* WEEK DAYS */}
-                <div className="grid grid-cols-7 text-xs text-gray-400 mb-3 px-2">
-                  {["lun.", "mar.", "mié.", "jue.", "vie.", "sáb.", "dom."].map(
-                    (d) => (
-                      <div key={d} className="text-center">
-                        {d}
-                      </div>
-                    ),
-                  )}
-                </div>
-
-                {/* CALENDARIO GRID */}
-                <div className="grid grid-cols-7 gap-4 relative">
-                  {Array.from({ length: 30 }).map((_, i) => {
-                    const day = i + 1;
-                    const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-
-                    const dayReservations = reservations.filter((r) => {
-                      return dateStr >= r.checkIn && dateStr <= r.checkOut;
-                    });
-
-                    return (
-                      <div
-                        key={day}
-                        className="bg-gray-50 border border-gray-200 rounded-2xl p-3 h-28 flex flex-col justify-between"
-                      >
-                        <div className="text-sm font-medium text-gray-700">
-                          {day}
-                        </div>
-
-                        <div className="space-y-1">
-                          {dayReservations.slice(0, 2).map((r, idx) => (
-                            <div
-                              key={idx}
-                              className={`text-[10px] px-2 py-1 rounded-full truncate ${
-                                false
-                                  ? "bg-gray-200 text-gray-500"
-                                  : "bg-blue-50 text-blue-400"
-                              }`}
+                              className="flex items-center justify-center cursor-pointer hover:bg-gray-200 px-2 py-1 rounded-md transition"
                             >
-                              Reservado
-                            </div>
-                          ))}
-
-                          {dayReservations.length > 2 && (
-                            <div className="text-[10px] text-gray-400">
-                              +{dayReservations.length - 2} más
+                              <span className="text-sm font-semibold text-gray-900">
+                                {(() => {
+                                  const raw = String(
+                                    totals[getKey(r)] ?? "",
+                                  ).replace(/[^0-9]/g, "");
+                                  if (!raw) return "";
+                                  const num = parseInt(raw, 10);
+                                  if (isNaN(num)) return "";
+                                  return `$${num.toLocaleString()}`;
+                                })()}
+                              </span>
                             </div>
                           )}
                         </div>
+                        <div className="flex justify-center items-center">
+                          {editingName[getKey(r)] ? (
+                            <>
+                              <input
+                                autoFocus
+                                value={names[getKey(r)] || ""}
+                                onChange={(e) => {
+                                  handleNameChange(r, e.target.value);
+                                  debouncedSave(r);
+                                }}
+                                onBlur={() =>
+                                  setEditingName((prev) => ({
+                                    ...prev,
+                                    [getKey(r)]: false,
+                                  }))
+                                }
+                                placeholder="Nombre"
+                                className="w-28 bg-white border border-gray-300 rounded-md px-2 py-1 text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                              />
+                            </>
+                          ) : (
+                            <span
+                              onClick={() =>
+                                setEditingName((prev) => ({
+                                  ...prev,
+                                  [getKey(r)]: true,
+                                }))
+                              }
+                              className="w-28 text-center text-sm text-gray-700 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded-md"
+                            >
+                              {names[getKey(r)] || "---"}
+                            </span>
+                          )}
+                        </div>
+                        {saving[getKey(r)] && (
+                          <span className="text-[10px] text-gray-400">
+                            Guardando...
+                          </span>
+                        )}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2 py-1 rounded text-xs font-medium ${
+                              r.status === "Reserved"
+                                ? "bg-blue-100 text-blue-700"
+                                : "bg-green-100 text-green-700"
+                            }`}
+                          >
+                            {r.status}
+                          </span>
+                          <button
+                            onClick={() => saveRow(r)}
+                            disabled={saving[getKey(r)]}
+                            className="bg-green-600 text-white text-xs px-3 py-1 rounded hover:bg-green-700 disabled:opacity-50"
+                          >
+                            {saving[getKey(r)] ? "..." : "Guardar"}
+                          </button>
+                        </div>
                       </div>
-                    );
-                  })}
+                    ))}
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                  {/* HEADER */}
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-semibold text-gray-800 tracking-tight">
+                      {new Date(month + "-01").toLocaleString("es-MX", {
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </h2>
+
+                    <select
+                      value={month}
+                      onChange={(e) => setMonth(e.target.value)}
+                      className="border border-gray-200 px-3 py-1.5 rounded-lg text-sm bg-gray-50"
+                    >
+                      <option value="2026-04">Abril 2026</option>
+                      <option value="2026-05">Mayo 2026</option>
+                      <option value="2026-06">Junio 2026</option>
+                    </select>
+                  </div>
+
+                  {/* WEEK DAYS */}
+                  <div className="grid grid-cols-7 text-xs text-gray-400 mb-3 px-2">
+                    {[
+                      "lun.",
+                      "mar.",
+                      "mié.",
+                      "jue.",
+                      "vie.",
+                      "sáb.",
+                      "dom.",
+                    ].map((d) => (
+                      <div key={d} className="text-center">
+                        {d}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* CALENDARIO GRID */}
+                  <div className="grid grid-cols-7 gap-6 relative">
+                    {Array.from({ length: 30 }).map((_, i) => {
+                      const day = i + 1;
+                      const dateStr = `${month}-${String(day).padStart(2, "0")}`;
+
+                      const dayReservations = reservations.filter((r) => {
+                        return dateStr >= r.checkIn && dateStr <= r.checkOut;
+                      });
+
+                      return (
+                        <div
+                          key={day}
+                          onClick={() => setSelectedDate(dateStr)}
+                          className={`bg-gray-50 border border-gray-200 rounded-2xl p-3 h-32 flex flex-col justify-between hover:shadow-md hover:scale-[1.02] transition cursor-pointer ${
+                            dateStr === todayStr
+                              ? "border-blue-500 bg-blue-50"
+                              : ""
+                          } ${
+                            selectedDate === dateStr
+                              ? "ring-2 ring-blue-400"
+                              : ""
+                          }`}
+                        >
+                          <div className="text-sm font-medium text-gray-700">
+                            {day}
+                          </div>
+
+                          <div className="space-y-1">
+                            {dayReservations.slice(0, 2).map((r, idx) => (
+                              <div
+                                key={idx}
+                                title={`${r.name} - ${names[getKey(r)] || "Guest"} (${r.checkIn} → ${r.checkOut})`}
+                                className={`text-[10px] px-2 py-1 rounded-full truncate hover:scale-105 transition ${
+                                  propertyColors[r.name] ||
+                                  "bg-gray-200 text-gray-700"
+                                }`}
+                              >
+                                {r.name} · {names[getKey(r)] || "Guest"}
+                              </div>
+                            ))}
+
+                            {dayReservations.length > 2 && (
+                              <div className="text-[10px] text-blue-500 font-medium">
+                                +{dayReservations.length - 2} más
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
     </>
   );
 }
