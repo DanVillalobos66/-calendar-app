@@ -248,19 +248,7 @@ export default function Home() {
 
         setReservations(cleaned);
         console.log("CLEANED RESERVATIONS:", cleaned);
-        const fallbackProperties = [
-          "VILLAS TOH",
-          "NEEA 102",
-          "NEEA 103",
-          "NEEA 201",
-          "NEEA 202",
-          "NEEA 303",
-        ];
-        setProperties(
-          Array.from(
-            new Set([...(data.properties || []), ...fallbackProperties]),
-          ),
-        );
+        setProperties(data.properties || []);
       })
       .catch(() => {
         console.error("Error loading iCal data");
@@ -306,7 +294,7 @@ export default function Home() {
     const checkIn = normalize(r.checkIn);
     const month = checkIn?.slice(0, 7);
 
-    const raw = totals[key] || r.total || "";
+    const raw = totals[key] || "";
     const amount = raw ? Number(String(raw).replace(/[^0-9]/g, "")) : 0;
 
     if (!acc[month]) acc[month] = 0;
@@ -513,12 +501,96 @@ export default function Home() {
                       </p>
                     </div>
 
+                    {/* NOCHES CARD */}
+                    <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
+                      <p className="text-sm text-gray-400">Noches</p>
+                      <p className="text-2xl font-semibold text-gray-800">
+                        {reservations.reduce((acc, r) => {
+                          const start = new Date(r.checkIn);
+                          const end = new Date(r.checkOut);
+                          return (
+                            acc +
+                            (end.getTime() - start.getTime()) /
+                              (1000 * 60 * 60 * 24)
+                          );
+                        }, 0)}
+                      </p>
+                    </div>
+
                     <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
                       <p className="text-sm text-gray-400">Propiedades</p>
                       <p className="text-2xl font-semibold text-gray-800">
                         {properties.length}
                       </p>
                     </div>
+
+                    {/* SaaS Occupancy % card */}
+                    <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
+                      <p className="text-sm text-gray-400">Ocupación % (mes)</p>
+                      <p className="text-2xl font-semibold text-indigo-600">
+                        {(() => {
+                          const daysInMonth = new Date(month + "-01");
+                          const lastDay = new Date(
+                            daysInMonth.getFullYear(),
+                            daysInMonth.getMonth() + 1,
+                            0,
+                          ).getDate();
+
+                          const uniqueDays = new Set<string>();
+                          reservations.forEach((r) => {
+                            let d = new Date(r.checkIn);
+                            const end = new Date(r.checkOut);
+                            while (d <= end) {
+                              const ds = d.toISOString().slice(0, 10);
+                              if (ds.startsWith(month)) uniqueDays.add(ds);
+                              d.setDate(d.getDate() + 1);
+                            }
+                          });
+
+                          const totalPossible =
+                            lastDay *
+                            (new Set(reservations.map((r) => r.name)).size ||
+                              1);
+                          if (!totalPossible) return "0%";
+                          const pct = Math.round(
+                            (uniqueDays.size / totalPossible) * 100,
+                          );
+                          return `${pct}%`;
+                        })()}
+                      </p>
+                    </div>
+
+                    {/* ADR CARD */}
+                    <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
+                      <p className="text-sm text-gray-400">ADR</p>
+                      <p className="text-2xl font-semibold text-blue-600">
+                        {(() => {
+                          const paid = reservations.filter((r) => {
+                            const key = getKey(r);
+                            return totals[key];
+                          });
+
+                          const revenue = paid.reduce((acc, r) => {
+                            const key = getKey(r);
+                            return acc + Number(totals[key] || 0);
+                          }, 0);
+
+                          const nights = paid.reduce((acc, r) => {
+                            const start = new Date(r.checkIn);
+                            const end = new Date(r.checkOut);
+                            return (
+                              acc +
+                              (end.getTime() - start.getTime()) /
+                                (1000 * 60 * 60 * 24)
+                            );
+                          }, 0);
+
+                          if (!nights) return "$0";
+                          return `$${Math.round(revenue / nights).toLocaleString()}`;
+                        })()}
+                      </p>
+                    </div>
+
                     <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
                       <p className="text-sm text-gray-400">Ingresos Totales</p>
                       <p className="text-2xl font-bold text-green-600">
@@ -526,7 +598,7 @@ export default function Home() {
                         {reservations
                           .reduce((acc, r) => {
                             const key = getKey(r);
-                            const raw = totals[key] || r.total || "";
+                            const raw = totals[key] || "";
                             const amount = raw
                               ? Number(String(raw).replace(/[^0-9]/g, ""))
                               : 0;
@@ -584,6 +656,41 @@ export default function Home() {
                     </div>
                   </div>
 
+                  {/* SaaS Revenue Trend (line-style visual) */}
+                  <div className="bg-white rounded-2xl border p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                      Tendencia ingresos 📈
+                    </h3>
+
+                    <div className="flex items-end gap-2 h-40">
+                      {months.map((m, i) => {
+                        const value = monthlyIncome[m] || 0;
+                        const max = Math.max(
+                          ...Object.values(monthlyIncome),
+                          1,
+                        );
+                        const height = (value / max) * 100;
+
+                        return (
+                          <div
+                            key={i}
+                            className="flex-1 flex flex-col items-center"
+                          >
+                            <div
+                              className="w-full bg-purple-500 rounded-t"
+                              style={{ height: `${height}%`, minHeight: "6px" }}
+                            />
+                            <span className="text-[10px] text-gray-400 mt-1">
+                              {new Date(m + "-01").toLocaleString("es-MX", {
+                                month: "short",
+                              })}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* MONTHLY INCOME DASHBOARD */}
                   <div className="bg-white rounded-2xl border p-6">
                     <div className="flex justify-between items-center mb-4">
@@ -604,7 +711,18 @@ export default function Home() {
                     {months.length > 0 &&
                       (() => {
                         const values = Object.values(monthlyIncome) as number[];
-                        const max = Math.max(...values, 1);
+                        // Normalize and cap the chart scale
+                        const rawMax = Math.max(...values, 1);
+
+                        // Round max to a cleaner scale (Airbnb style)
+                        let max;
+                        if (rawMax <= 500000) {
+                          max = 500000;
+                        } else if (rawMax <= 1000000) {
+                          max = 1000000;
+                        } else {
+                          max = Math.ceil(rawMax / 500000) * 500000;
+                        }
 
                         return (
                           <div className="relative h-64">
@@ -616,7 +734,10 @@ export default function Home() {
                                   className="border-t border-gray-200 relative"
                                 >
                                   <span className="absolute -top-2 left-0">
-                                    ${(max * (p / 100)).toLocaleString()}
+                                    $
+                                    {Math.round(
+                                      max * (p / 100),
+                                    ).toLocaleString()}
                                   </span>
                                 </div>
                               ))}
@@ -663,6 +784,47 @@ export default function Home() {
                       })()}
                   </div>
 
+                  {/* SaaS Top Property Ranking */}
+                  <div className="bg-white rounded-2xl border p-6">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                      Top propiedades 🏆
+                    </h3>
+
+                    {Array.from(new Set(reservations.map((r) => r.name)))
+                      .map((prop) => {
+                        const propReservations = reservations.filter(
+                          (r) => r.name === prop,
+                        );
+
+                        const revenue = propReservations.reduce((acc, r) => {
+                          const key = getKey(r);
+                          return acc + Number(totals[key] || 0);
+                        }, 0);
+
+                        return {
+                          prop,
+                          revenue,
+                          count: propReservations.length,
+                        };
+                      })
+                      .sort((a, b) => b.revenue - a.revenue)
+                      .slice(0, 5)
+                      .map((item, i) => (
+                        <div
+                          key={i}
+                          className="flex justify-between py-2 border-b text-sm"
+                        >
+                          <span className="font-medium text-gray-700">
+                            {item.prop}
+                          </span>
+                          <span className="text-gray-500">
+                            ${item.revenue.toLocaleString()} · {item.count}{" "}
+                            reservas
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+
                   {/* MULTI PROPIEDADES */}
                   <div className="bg-white rounded-2xl border p-6">
                     <h3 className="text-lg font-semibold text-gray-800 mb-4">
@@ -683,7 +845,7 @@ export default function Home() {
 
                       const totalIncome = propReservations.reduce((acc, r) => {
                         const key = getKey(r);
-                        const raw = totals[key] || r.total || "";
+                        const raw = totals[key] || "";
                         const amount = raw
                           ? Number(String(raw).replace(/[^0-9]/g, ""))
                           : 0;
@@ -806,7 +968,7 @@ export default function Home() {
                                 }
                                 className="flex items-center justify-center cursor-pointer hover:bg-gray-200 px-2 py-1 rounded-md transition"
                               >
-                                <span className="text-sm font-semibold text-gray-900">
+                                <span className="text-sm font-semibold text-green-600">
                                   {(() => {
                                     const raw = String(
                                       totals[getKey(r)] ?? r.total ?? "",
