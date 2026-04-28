@@ -235,7 +235,7 @@ export default function Home() {
         const namesObj: any = {};
 
         data.forEach((row: any) => {
-          const key = `${normalize(row.property)}|${normalize(row.check_in)}|${normalize(row.check_out)}`;
+          const key = `${normalize(row.property)}|${normalize(row.check_in).slice(0, 10)}|${normalize(row.check_out).slice(0, 10)}`;
 
           if (row.total) {
             totalsObj[key] = String(row.total);
@@ -473,14 +473,7 @@ export default function Home() {
                     <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
                       <p className="text-sm text-gray-400">Propiedades</p>
                       <p className="text-2xl font-semibold text-gray-800">
-                        {
-                          new Set(
-                            (Array.isArray(reservations)
-                              ? reservations
-                              : []
-                            ).map((r) => r.name),
-                          ).size
-                        }
+                        {properties.length}
                       </p>
                     </div>
                     <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
@@ -490,11 +483,13 @@ export default function Home() {
                         {reservations
                           .reduce((acc, r) => {
                             const key = getKey(r);
-                            const value = (totals[key] || "").replace(
-                              /[^0-9]/g,
-                              "",
-                            );
-                            return acc + (value ? Number(value) : 0);
+                            const raw = totals[key];
+                            if (!raw) return acc;
+
+                            const value = raw.replace(/[^0-9]/g, "");
+                            if (!value) return acc;
+
+                            return acc + Number(value);
                           }, 0)
                           .toLocaleString()}
                       </p>
@@ -533,7 +528,10 @@ export default function Home() {
                           >
                             <div
                               className="w-full bg-blue-500 rounded-t"
-                              style={{ height: `${(count / max) * 100}%` }}
+                              style={{
+                                height: count > 0 ? `${(count / max) * 100}%` : "6px",
+                                minHeight: count > 0 ? "20px" : "6px",
+                              }}
                             />
                             <span className="text-[10px] text-gray-400 mt-1">
                               {days[i].getDate()}
@@ -544,35 +542,70 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* MONTHLY INCOME CHART */}
+                  {/* MONTHLY INCOME DASHBOARD */}
                   <div className="bg-white rounded-2xl border p-6">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                      Ingresos por mes 💰
-                    </h3>
-
-                    <div className="flex items-end gap-2 h-40">
-                      {months.map((m, i) => {
-                        const max = Math.max(
-                          ...(Object.values(monthlyIncome) as number[]),
-                        );
-                        const value = monthlyIncome[m];
-
-                        return (
-                          <div
-                            key={i}
-                            className="flex-1 flex flex-col items-center"
-                          >
-                            <div
-                              className="w-full bg-green-500 rounded-t"
-                              style={{ height: `${(value / max) * 100}%` }}
-                            />
-                            <span className="text-[10px] text-gray-400 mt-1">
-                              {m.slice(5)}
-                            </span>
-                          </div>
-                        );
-                      })}
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        Ingresos por mes 💰
+                      </h3>
+                      <span className="text-xs text-gray-400">Vista mensual</span>
                     </div>
+
+                    {months.length === 0 && (
+                      <div className="text-center text-gray-400 text-sm py-10">
+                        No hay ingresos registrados 📉
+                      </div>
+                    )}
+
+                    {months.length > 0 && (() => {
+                      const values = Object.values(monthlyIncome) as number[];
+                      const max = Math.max(...values, 1);
+
+                      return (
+                        <div className="relative h-64">
+                          {/* GRID LINES */}
+                          <div className="absolute inset-0 flex flex-col justify-between text-[10px] text-gray-300">
+                            {[100, 75, 50, 25, 0].map((p) => (
+                              <div key={p} className="border-t border-gray-200 relative">
+                                <span className="absolute -top-2 left-0">
+                                  ${(max * (p / 100)).toLocaleString()}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* BARS */}
+                          <div className="absolute inset-0 flex items-end gap-6 pt-4">
+                            {months.map((m, i) => {
+                              const value = monthlyIncome[m] || 0;
+                              const height = (value / max) * 100;
+
+                              return (
+                                <div key={i} className="flex-1 flex flex-col items-center group">
+                                  <div
+                                    className="w-full max-w-[40px] bg-green-500 rounded-lg shadow-md transition-all duration-300 hover:bg-green-600"
+                                    style={{
+                                      height: value > 0 ? `${height}%` : "6px",
+                                      minHeight: value > 0 ? "30px" : "6px",
+                                    }}
+                                  />
+
+                                  <span className="text-xs text-gray-500 mt-2">
+                                    {new Date(m + "-01").toLocaleString("es-MX", {
+                                      month: "short",
+                                    })}
+                                  </span>
+
+                                  <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition">
+                                    ${value.toLocaleString()}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* MULTI PROPIEDADES */}
@@ -595,11 +628,14 @@ export default function Home() {
 
                       const totalIncome = propReservations.reduce((acc, r) => {
                         const key = getKey(r);
-                        const value = (totals[key] || "").replace(
-                          /[^0-9]/g,
-                          "",
-                        );
-                        return acc + (value ? Number(value) : 0);
+                        const raw = totals[key];
+
+                        if (!raw) return acc;
+
+                        const value = raw.replace(/[^0-9]/g, "");
+                        if (!value) return acc;
+
+                        return acc + Number(value);
                       }, 0);
 
                       return (
