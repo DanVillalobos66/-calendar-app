@@ -58,6 +58,45 @@ export default function Home() {
   const getKey = (r: any) =>
     `${normalize(r.name)}|${normalize(r.checkIn).slice(0, 10)}|${normalize(r.checkOut).slice(0, 10)}`;
 
+  // Airbnb reservation normalizer (stricter)
+  const normalizeAirbnb = (r: any) => {
+    // Use status already parsed from API
+    if (r.status !== "Reserved") return null;
+
+    return {
+      name: r.name,
+      checkIn: (r.checkIn || "").slice(0, 10),
+      checkOut: (r.checkOut || "").slice(0, 10),
+      total: r.total || "",
+      status: "Reserved",
+      channel: "Airbnb",
+    };
+  };
+
+  // Clean iCal data: dedupe, remove invalid, stricter filtering
+  const cleanIcalData = (events: any[]) => {
+    const map = new Map();
+
+    events.forEach((r) => {
+      const normalized = normalizeAirbnb(r);
+
+      // ❌ skip non-reservations
+      if (!normalized) return;
+
+      // ❌ skip invalid dates
+      if (!normalized.checkIn || !normalized.checkOut) return;
+
+      const start = new Date(normalized.checkIn);
+      const end = new Date(normalized.checkOut);
+
+      const key = `${normalized.name}|${normalized.checkIn}|${normalized.checkOut}`;
+
+      map.set(key, normalized);
+    });
+
+    return Array.from(map.values());
+  };
+
   const formatCurrency = (value: string) => {
     const num = value.replace(/[^0-9]/g, "");
     if (!num) return "";
@@ -89,7 +128,7 @@ export default function Home() {
     const key = getKey(r);
     setSaving((prev) => ({ ...prev, [key]: true }));
 
-    const cleanTotal = (totals[key] || "").replace(/[^0-9]/g, "");
+    const cleanTotal = (totals[key] || r.total || "").replace(/[^0-9]/g, "");
     // Do NOT overwrite if empty
     const payload: any = {
       property: r.name,
@@ -135,9 +174,10 @@ export default function Home() {
           property: r.name,
           check_in: toDate(r.checkIn),
           check_out: toDate(r.checkOut),
-          total: totals[key]
-            ? String(totals[key]).replace(/[^0-9]/g, "")
-            : null,
+          total:
+            totals[key] || r.total
+              ? String(totals[key] || r.total).replace(/[^0-9]/g, "")
+              : null,
           guest_name: names[key] || null,
         },
       ],
@@ -169,7 +209,7 @@ export default function Home() {
           property: r.name,
           check_in: toDate(r.checkIn),
           check_out: toDate(r.checkOut),
-          total: totals[key] || null,
+          total: totals[key] || r.total || null,
           guest_name: names[key] || null,
         });
       }
@@ -202,9 +242,12 @@ export default function Home() {
     fetch("/api/ical")
       .then((res) => res.json())
       .then((data) => {
-        setReservations(
-          (data.events || []).filter((r: any) => r.status === "Reserved"),
-        );
+        const raw = data.events || [];
+
+        const cleaned = cleanIcalData(raw);
+
+        setReservations(cleaned);
+        console.log("CLEANED RESERVATIONS:", cleaned);
         const fallbackProperties = [
           "VILLAS TOH",
           "NEEA 102",
@@ -263,8 +306,8 @@ export default function Home() {
     const checkIn = normalize(r.checkIn);
     const month = checkIn?.slice(0, 7);
 
-    const value = (totals[key] || "").replace(/[^0-9]/g, "");
-    const amount = value ? Number(value) : 0;
+    const raw = totals[key] || r.total || "";
+    const amount = raw ? Number(String(raw).replace(/[^0-9]/g, "")) : 0;
 
     if (!acc[month]) acc[month] = 0;
     acc[month] += amount;
@@ -483,13 +526,11 @@ export default function Home() {
                         {reservations
                           .reduce((acc, r) => {
                             const key = getKey(r);
-                            const raw = totals[key];
-                            if (!raw) return acc;
-
-                            const value = raw.replace(/[^0-9]/g, "");
-                            if (!value) return acc;
-
-                            return acc + Number(value);
+                            const raw = totals[key] || r.total || "";
+                            const amount = raw
+                              ? Number(String(raw).replace(/[^0-9]/g, ""))
+                              : 0;
+                            return acc + amount;
                           }, 0)
                           .toLocaleString()}
                       </p>
@@ -529,7 +570,8 @@ export default function Home() {
                             <div
                               className="w-full bg-blue-500 rounded-t"
                               style={{
-                                height: count > 0 ? `${(count / max) * 100}%` : "6px",
+                                height:
+                                  count > 0 ? `${(count / max) * 100}%` : "6px",
                                 minHeight: count > 0 ? "20px" : "6px",
                               }}
                             />
@@ -548,7 +590,9 @@ export default function Home() {
                       <h3 className="text-lg font-semibold text-gray-800">
                         Ingresos por mes 💰
                       </h3>
-                      <span className="text-xs text-gray-400">Vista mensual</span>
+                      <span className="text-xs text-gray-400">
+                        Vista mensual
+                      </span>
                     </div>
 
                     {months.length === 0 && (
@@ -557,55 +601,66 @@ export default function Home() {
                       </div>
                     )}
 
-                    {months.length > 0 && (() => {
-                      const values = Object.values(monthlyIncome) as number[];
-                      const max = Math.max(...values, 1);
+                    {months.length > 0 &&
+                      (() => {
+                        const values = Object.values(monthlyIncome) as number[];
+                        const max = Math.max(...values, 1);
 
-                      return (
-                        <div className="relative h-64">
-                          {/* GRID LINES */}
-                          <div className="absolute inset-0 flex flex-col justify-between text-[10px] text-gray-300">
-                            {[100, 75, 50, 25, 0].map((p) => (
-                              <div key={p} className="border-t border-gray-200 relative">
-                                <span className="absolute -top-2 left-0">
-                                  ${(max * (p / 100)).toLocaleString()}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* BARS */}
-                          <div className="absolute inset-0 flex items-end gap-6 pt-4">
-                            {months.map((m, i) => {
-                              const value = monthlyIncome[m] || 0;
-                              const height = (value / max) * 100;
-
-                              return (
-                                <div key={i} className="flex-1 flex flex-col items-center group">
-                                  <div
-                                    className="w-full max-w-[40px] bg-green-500 rounded-lg shadow-md transition-all duration-300 hover:bg-green-600"
-                                    style={{
-                                      height: value > 0 ? `${height}%` : "6px",
-                                      minHeight: value > 0 ? "30px" : "6px",
-                                    }}
-                                  />
-
-                                  <span className="text-xs text-gray-500 mt-2">
-                                    {new Date(m + "-01").toLocaleString("es-MX", {
-                                      month: "short",
-                                    })}
-                                  </span>
-
-                                  <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition">
-                                    ${value.toLocaleString()}
+                        return (
+                          <div className="relative h-64">
+                            {/* GRID LINES */}
+                            <div className="absolute inset-0 flex flex-col justify-between text-[10px] text-gray-300">
+                              {[100, 75, 50, 25, 0].map((p) => (
+                                <div
+                                  key={p}
+                                  className="border-t border-gray-200 relative"
+                                >
+                                  <span className="absolute -top-2 left-0">
+                                    ${(max * (p / 100)).toLocaleString()}
                                   </span>
                                 </div>
-                              );
-                            })}
+                              ))}
+                            </div>
+
+                            {/* BARS */}
+                            <div className="absolute inset-0 flex items-end gap-6 pt-4">
+                              {months.map((m, i) => {
+                                const value = monthlyIncome[m] || 0;
+                                const height = (value / max) * 100;
+
+                                return (
+                                  <div
+                                    key={i}
+                                    className="flex-1 flex flex-col items-center group"
+                                  >
+                                    <div
+                                      className="w-full max-w-[40px] bg-green-500 rounded-lg shadow-md transition-all duration-300 hover:bg-green-600"
+                                      style={{
+                                        height:
+                                          value > 0 ? `${height}%` : "6px",
+                                        minHeight: value > 0 ? "30px" : "6px",
+                                      }}
+                                    />
+
+                                    <span className="text-xs text-gray-500 mt-2">
+                                      {new Date(m + "-01").toLocaleString(
+                                        "es-MX",
+                                        {
+                                          month: "short",
+                                        },
+                                      )}
+                                    </span>
+
+                                    <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition">
+                                      ${value.toLocaleString()}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })()}
+                        );
+                      })()}
                   </div>
 
                   {/* MULTI PROPIEDADES */}
@@ -628,14 +683,11 @@ export default function Home() {
 
                       const totalIncome = propReservations.reduce((acc, r) => {
                         const key = getKey(r);
-                        const raw = totals[key];
-
-                        if (!raw) return acc;
-
-                        const value = raw.replace(/[^0-9]/g, "");
-                        if (!value) return acc;
-
-                        return acc + Number(value);
+                        const raw = totals[key] || r.total || "";
+                        const amount = raw
+                          ? Number(String(raw).replace(/[^0-9]/g, ""))
+                          : 0;
+                        return acc + amount;
                       }, 0);
 
                       return (
@@ -678,14 +730,15 @@ export default function Home() {
                       .filter((r) => {
                         const key = getKey(r);
                         const guest = (names[key] || "").toLowerCase();
+                        const searchText = search.toLowerCase();
 
-                        return (
-                          (r.name
-                            .toLowerCase()
-                            .includes(search.toLowerCase()) &&
-                            userProperties.includes(r.name)) ||
-                          guest.includes(search.toLowerCase())
-                        );
+                        const matchesProperty =
+                          r.name.toLowerCase().includes(searchText) &&
+                          userProperties.includes(r.name);
+
+                        const matchesGuest = guest.includes(searchText);
+
+                        return matchesProperty || matchesGuest;
                       })
                       .map((r, i) => (
                         <div
@@ -756,7 +809,7 @@ export default function Home() {
                                 <span className="text-sm font-semibold text-gray-900">
                                   {(() => {
                                     const raw = String(
-                                      totals[getKey(r)] ?? "",
+                                      totals[getKey(r)] ?? r.total ?? "",
                                     ).replace(/[^0-9]/g, "");
                                     if (!raw) return "";
                                     const num = parseInt(raw, 10);
