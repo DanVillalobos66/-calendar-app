@@ -33,6 +33,7 @@ export default function Home() {
   // Dark mode state
   const [dark, setDark] = useState(false);
 
+
   const [user, setUser] = useState<any>(null);
   const [email, setEmail] = useState("");
   // Toast for feedback UX
@@ -287,7 +288,7 @@ export default function Home() {
 
       <div className={`flex-1 p-2 text-sm ${collapsed ? "items-center" : ""}`}>
         <ul className="space-y-1">
-          {["informacion","calendario","reservations"].map((v)=> (
+          {["documentacion","reservations"].map((v)=> (
             <li
               key={v}
               onClick={() => setView(v)}
@@ -295,7 +296,13 @@ export default function Home() {
                 view === v ? "bg-gray-100 text-black" : "text-gray-500 hover:bg-gray-100"
               }`}
             >
-              {!collapsed && (v === "reservations" ? "Reservations" : v.charAt(0).toUpperCase()+v.slice(1))}
+              {!collapsed && (
+                v === "reservations"
+                  ? "Reservations"
+                  : v === "documentacion"
+                  ? "Documentación"
+                  : v.charAt(0).toUpperCase() + v.slice(1)
+              )}
             </li>
           ))}
         </ul>
@@ -305,9 +312,27 @@ export default function Home() {
 
   const Header = ({ view, search, setSearch, dark, setDark, user, logout, email, setEmail, login }: any) => (
     <div className="h-14 bg-white border-b flex items-center px-6 justify-between">
-      <h1 className="font-semibold text-gray-700">
-        {view === "calendario" ? "Calendario" : view === "informacion" ? "Información" : "Reservations"}
-      </h1>
+      <div className="flex flex-col">
+        <div className="text-xs text-gray-400">
+          <span onClick={() => setView("reservations")} className="cursor-pointer hover:underline">Inicio</span>
+          {view === "documentacion" && (
+            <>
+              <span className="mx-1">›</span>
+              <span className="text-gray-600">Documentación</span>
+            </>
+          )}
+          {view === "reservations" && (
+            <>
+              <span className="mx-1">›</span>
+              <span className="text-gray-600">Reservations</span>
+            </>
+          )}
+        </div>
+
+        <h1 className="font-semibold text-gray-700">
+          {view === "documentacion" ? "Documentación" : "Reservations"}
+        </h1>
+      </div>
 
       <div className="flex items-center gap-3">
         <input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search..." className="border rounded px-3 py-1 text-sm" />
@@ -789,6 +814,36 @@ export default function Home() {
               </div>
             </div>
           )}
+
+            {view === "documentacion" && (
+              <div className="grid grid-cols-3 gap-6">
+
+                <div
+                  onClick={() => (window.location.href = "/documentacion/neea")}
+                  className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition cursor-pointer"
+                >
+                  <h3 className="text-lg font-semibold text-gray-800">NEEA</h3>
+                  <p className="text-sm text-gray-400 mt-2">Documentación de propiedades NEEA</p>
+                </div>
+
+                <div
+                  onClick={() => (window.location.href = "/documentacion/toh")}
+                  className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition cursor-pointer"
+                >
+                  <h3 className="text-lg font-semibold text-gray-800">Villas TOH</h3>
+                  <p className="text-sm text-gray-400 mt-2">Documentación Villas TOH</p>
+                </div>
+
+                <div
+                  onClick={() => (window.location.href = "/documentacion/puebla")}
+                  className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition cursor-pointer"
+                >
+                  <h3 className="text-lg font-semibold text-gray-800">Puebla</h3>
+                  <p className="text-sm text-gray-400 mt-2">Documentación Puebla</p>
+                </div>
+
+              </div>
+            )}
           </div>
         </div>
       </div>
