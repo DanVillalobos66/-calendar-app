@@ -276,8 +276,58 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const userProperties = role === "admin" ? properties : properties.slice(0, 2);
 
+  // ---------- COMPONENTS ----------
+
+  const Sidebar = ({ collapsed, setCollapsed, view, setView }: any) => (
+    <div className={`${collapsed ? "w-16" : "w-64"} bg-white text-gray-800 border-r flex flex-col transition-all duration-300`}>
+      <div className="p-4 font-semibold text-lg border-b flex items-center justify-between">
+        {!collapsed && <span>GreenState</span>}
+        <button onClick={() => setCollapsed(!collapsed)} className="text-gray-500 hover:text-black">☰</button>
+      </div>
+
+      <div className={`flex-1 p-2 text-sm ${collapsed ? "items-center" : ""}`}>
+        <ul className="space-y-1">
+          {["informacion","calendario","reservations"].map((v)=> (
+            <li
+              key={v}
+              onClick={() => setView(v)}
+              className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${
+                view === v ? "bg-gray-100 text-black" : "text-gray-500 hover:bg-gray-100"
+              }`}
+            >
+              {!collapsed && (v === "reservations" ? "Reservations" : v.charAt(0).toUpperCase()+v.slice(1))}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+
+  const Header = ({ view, search, setSearch, dark, setDark, user, logout, email, setEmail, login }: any) => (
+    <div className="h-14 bg-white border-b flex items-center px-6 justify-between">
+      <h1 className="font-semibold text-gray-700">
+        {view === "calendario" ? "Calendario" : view === "informacion" ? "Información" : "Reservations"}
+      </h1>
+
+      <div className="flex items-center gap-3">
+        <input value={search} onChange={(e)=>setSearch(e.target.value)} placeholder="Search..." className="border rounded px-3 py-1 text-sm" />
+        <button onClick={()=>setDark(!dark)} className="text-xs px-2 py-1 border rounded">{dark?"Light":"Dark"}</button>
+        {user ? (
+          <button onClick={logout} className="text-sm bg-gray-200 px-3 py-1 rounded">Logout</button>
+        ) : (
+          <>
+            <input value={email} onChange={(e)=>setEmail(e.target.value)} className="border px-2 py-1 text-sm" />
+            <button onClick={login} className="bg-green-600 text-white px-3 py-1 rounded text-sm">Login</button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+
+  // ---------- END COMPONENTS ----------
+
   return (
-    <>
+    <div>
       {toast && (
         <div className="fixed top-5 right-5 bg-green-600 text-white px-4 py-2 rounded shadow">
           {toast}
@@ -287,121 +337,16 @@ export default function Home() {
         className={`flex min-h-screen ${dark ? "bg-gray-900 text-white" : "bg-gray-100"}`}
       >
         {/* SIDEBAR */}
-        <div
-          className={`${collapsed ? "w-16" : "w-64"} bg-white text-gray-800 border-r flex flex-col transition-all duration-300`}
-        >
-          <div className="p-4 font-semibold text-lg border-b flex items-center justify-between">
-            {!collapsed && <span>GreenState</span>}
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="text-gray-500 hover:text-black"
-            >
-              ☰
-            </button>
-          </div>
-
-          <div
-            className={`flex-1 p-2 text-sm ${collapsed ? "items-center" : ""}`}
-          >
-            <ul className="space-y-1">
-              <li
-                onClick={() => setView("informacion")}
-                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${
-                  view === "informacion"
-                    ? "bg-gray-100 text-black"
-                    : "text-gray-500 hover:bg-gray-100"
-                }`}
-              >
-                {!collapsed && "Informacion"}
-              </li>
-
-              <li
-                onClick={() => setView("calendario")}
-                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${
-                  view === "calendario"
-                    ? "bg-gray-100 text-black"
-                    : "text-gray-500 hover:bg-gray-100"
-                }`}
-              >
-                {!collapsed && "Calendario"}
-              </li>
-
-              <li
-                onClick={() => setView("reservations")}
-                className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${
-                  view === "reservations"
-                    ? "bg-gray-100 text-black"
-                    : "text-gray-500 hover:bg-gray-100"
-                }`}
-              >
-                {!collapsed && "Reservations"}
-              </li>
-            </ul>
-          </div>
-        </div>
+        <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} view={view} setView={setView} />
 
         {/* MAIN */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* HEADER */}
-          <div className="h-14 bg-white border-b flex items-center px-6 justify-between">
-            <h1 className="font-semibold text-gray-700">
-              {view === "calendario"
-                ? "Calendario"
-                : view === "informacion"
-                  ? "Información"
-                  : "Reservations"}
-            </h1>
-
-            <div className="flex items-center gap-3">
-              <input
-                placeholder="Search..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="border rounded px-3 py-1 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-
-              <button
-                onClick={() => setDark(!dark)}
-                className="text-xs px-2 py-1 border rounded"
-              >
-                {dark ? "Light" : "Dark"}
-              </button>
-
-              <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">
-                Export
-              </button>
-
-              <button className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition">
-                Add Reservation
-              </button>
-              {user ? (
-                <button
-                  onClick={logout}
-                  className="text-sm bg-gray-200 px-3 py-1 rounded"
-                >
-                  Logout
-                </button>
-              ) : (
-                <div className="flex gap-2">
-                  <input
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="email"
-                    className="border px-2 py-1 text-sm"
-                  />
-                  <button
-                    onClick={login}
-                    className="bg-green-600 text-white px-3 py-1 rounded text-sm"
-                  >
-                    Login
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          <Header view={view} search={search} setSearch={setSearch} dark={dark} setDark={setDark} user={user} logout={logout} email={email} setEmail={setEmail} login={login} />
 
           {/* CONTENT */}
           <div className="p-6 overflow-y-auto flex-1 pb-20">
+            {view === "reservations" && (
             <div>
               <div className="space-y-6">
                 {/* CARDS */}
@@ -843,9 +788,10 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          )}
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
