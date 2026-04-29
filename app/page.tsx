@@ -456,7 +456,7 @@ export default function Home() {
               <AppSidebar view={view} setView={setView} />
               <SidebarInset className="flex flex-1 flex-col bg-background text-foreground transition-all duration-200 md:ml-[var(--sidebar-width)] peer-data-[state=collapsed]:md:ml-[var(--sidebar-width-icon)]">
                 {/* HEADER */}
-                <header className="flex h-16 items-center gap-2 px-4 border-b border-border bg-card text-card-foreground">
+                <header className="flex h-16 items-center gap-2 px-6 border-b border-border bg-card/70 backdrop-blur supports-[backdrop-filter]:bg-card/60 text-card-foreground shadow-sm">
                   <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md" />
 
                   <div className="flex flex-col">
@@ -473,7 +473,7 @@ export default function Home() {
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search..."
-                      className="border border-border bg-muted text-foreground rounded px-3 py-1 text-sm"
+                      className="border border-border/60 bg-muted/60 text-foreground rounded-full px-4 py-1.5 text-sm backdrop-blur focus:ring-2 focus:ring-blue-500 transition"
                     />
                     <button
                       onClick={() => setDark(!dark)}
@@ -497,7 +497,7 @@ export default function Home() {
                     </button>
                     <button
                       onClick={logout}
-                      className="text-sm px-4 py-1.5 rounded-full bg-muted text-foreground hover:bg-muted transition-all duration-200 shadow-sm hover:shadow-md border border-border"
+                      className="text-sm px-4 py-1.5 rounded-full bg-card/60 backdrop-blur border border-border/60 text-foreground hover:bg-muted/80 transition-all duration-200 shadow-sm hover:shadow-md"
                     >
                       Logout
                     </button>
@@ -505,13 +505,13 @@ export default function Home() {
                 </header>
 
                 {/* CONTENT */}
-                <div className="flex-1 p-6 overflow-y-auto pb-20">
+                <div className="flex-1 p-6 overflow-y-auto pb-20 space-y-6">
                   {view === "reservations" && (
                     <div>
                       <div className="space-y-6">
                         {/* CARDS */}
                         <div className="grid grid-cols-4 gap-4">
-                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                             <p className="text-sm text-muted-foreground">
                               Total Reservas
                             </p>
@@ -520,7 +520,7 @@ export default function Home() {
                             </p>
                           </div>
 
-                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                             <p className="text-sm text-muted-foreground">
                               Días Ocupados
                             </p>
@@ -548,7 +548,7 @@ export default function Home() {
                           </div>
 
                           {/* NOCHES CARD */}
-                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                             <p className="text-sm text-muted-foreground">Noches</p>
                             <p className="text-2xl font-semibold text-foreground">
                               {reservations.reduce((acc, r) => {
@@ -563,7 +563,7 @@ export default function Home() {
                             </p>
                           </div>
 
-                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                             <p className="text-sm text-muted-foreground">Propiedades</p>
                             <p className="text-2xl font-semibold text-foreground">
                               {properties.length}
@@ -571,7 +571,7 @@ export default function Home() {
                           </div>
 
                           {/* SaaS Occupancy % card */}
-                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                             <p className="text-sm text-muted-foreground">
                               Ocupación % (mes)
                             </p>
@@ -610,7 +610,7 @@ export default function Home() {
                           </div>
 
                           {/* ADR CARD */}
-                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                             <p className="text-sm text-muted-foreground">ADR</p>
                             <p className="text-2xl font-semibold text-blue-600">
                               {(() => {
@@ -640,7 +640,7 @@ export default function Home() {
                             </p>
                           </div>
 
-                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
                             <p className="text-sm text-muted-foreground">
                               Ingresos Totales
                             </p>
@@ -661,7 +661,7 @@ export default function Home() {
                         </div>
 
                         {/* GRAFICA SIMPLE */}
-                        <div className="bg-card rounded-2xl border border-border p-6">
+                        <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm">
                           <h3 className="text-lg font-semibold text-foreground mb-4">
                             Ocupación (visual)
                           </h3>
@@ -714,7 +714,7 @@ export default function Home() {
                         </div>
 
                         {/* SaaS Revenue Trend (line-style visual) */}
-                        <div className="bg-card rounded-2xl border border-border p-6">
+                        <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm">
                           <h3 className="text-lg font-semibold text-foreground mb-4">
                             Tendencia ingresos 📈
                           </h3>
@@ -755,7 +755,7 @@ export default function Home() {
                         </div>
 
                         {/* MONTHLY INCOME DASHBOARD */}
-                        <div className="bg-card rounded-2xl border border-border p-6">
+                        <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm">
                           <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-semibold text-foreground">
                               Ingresos por mes 💰
@@ -853,7 +853,7 @@ export default function Home() {
                         </div>
 
                         {/* SaaS Top Property Ranking */}
-                        <div className="bg-card rounded-2xl border border-border p-6">
+                        <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm">
                           <h3 className="text-lg font-semibold text-foreground mb-4">
                             Top propiedades 🏆
                           </h3>
@@ -897,7 +897,7 @@ export default function Home() {
                         </div>
 
                         {/* MULTI PROPIEDADES */}
-                        <div className="bg-card rounded-2xl border border-border p-6">
+                        <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm">
                           <h3 className="text-lg font-semibold text-foreground mb-4">
                             Propiedades
                           </h3>
@@ -1228,7 +1228,7 @@ export default function Home() {
                     <div className="grid grid-cols-3 gap-6">
                       <div
                         onClick={() => router.push("/documentacion/neea")}
-                        className="bg-card rounded-2xl border border-border p-6 shadow-sm hover:shadow-md transition cursor-pointer"
+                        className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm hover:shadow-md transition cursor-pointer"
                       >
                         <h3 className="text-lg font-semibold text-foreground">
                           NEEA
@@ -1240,7 +1240,7 @@ export default function Home() {
 
                       <div
                         onClick={() => router.push("/documentacion/toh")}
-                        className="bg-card rounded-2xl border border-border p-6 shadow-sm hover:shadow-md transition cursor-pointer"
+                        className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm hover:shadow-md transition cursor-pointer"
                       >
                         <h3 className="text-lg font-semibold text-foreground">
                           Villas TOH
@@ -1252,7 +1252,7 @@ export default function Home() {
 
                       <div
                         onClick={() => router.push("/documentacion/puebla")}
-                        className="bg-card rounded-2xl border border-border p-6 shadow-sm hover:shadow-md transition cursor-pointer"
+                        className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm hover:shadow-md transition cursor-pointer"
                       >
                         <h3 className="text-lg font-semibold text-foreground">
                           Puebla
