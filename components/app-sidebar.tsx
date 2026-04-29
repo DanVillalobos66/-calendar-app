@@ -156,17 +156,42 @@ const data = {
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+export function AppSidebar({ view, setView, ...props }: any) {
   return (
    <Sidebar
   defaultOpen
-  collapsible="offcanvas"
+  collapsible="icon"
   className="w-64 bg-white border-r text-gray-800"
 >
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent className="text-gray-800">
+        <div className="px-2 py-2 space-y-1">
+          <button
+            onClick={() => setView("reservations")}
+            className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition ${
+              view === "reservations"
+                ? "bg-green-600 text-white"
+                : "hover:bg-gray-100 text-gray-700"
+            }`}
+          >
+            📊
+            <span>Dashboard</span>
+          </button>
+
+          <button
+            onClick={() => setView("documentacion")}
+            className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition ${
+              view === "documentacion"
+                ? "bg-green-600 text-white"
+                : "hover:bg-gray-100 text-gray-700"
+            }`}
+          >
+            📁
+            <span>Documentación</span>
+          </button>
+        </div>
         <NavMain items={data.navMain} />
         <NavProjects projects={data.projects} />
       </SidebarContent>

@@ -372,41 +372,60 @@ export default function Home() {
           Cargando...
         </div>
       ) : !user ? (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100">
-          <div className="bg-white p-8 rounded-2xl shadow-md w-full max-w-md">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6 text-center">
-              GreenState Login 🔐
-            </h2>
-            <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Correo electrónico"
-              className="w-full border px-3 py-2 rounded mb-3"
-            />
+        <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-100 p-6">
+          <div className="flex w-full max-w-sm flex-col gap-6">
+            {/* LOGO */}
+            <div className="flex items-center gap-2 self-center font-medium text-gray-700">
+              <div className="flex size-6 items-center justify-center rounded-md bg-green-600 text-white">
+                🌿
+              </div>
+              GreenState
+            </div>
 
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Contraseña"
-              className="w-full border border-gray-300 bg-gray-50 px-3 py-2 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition"
-            />
+            {/* CARD */}
+            <div className="bg-white rounded-2xl shadow-md border p-6">
+              <div className="text-center mb-6">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  Bienvenido 👋
+                </h2>
+                <p className="text-sm text-gray-400">
+                  Inicia sesión para continuar
+                </p>
+              </div>
 
-            <button
-              onClick={isRegister ? register : login}
-              className="w-full bg-green-600 text-white py-2 rounded mb-3"
-            >
-              {isRegister ? "Crear cuenta" : "Iniciar sesión"}
-            </button>
+              <div className="space-y-4">
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Correo electrónico"
+                  className="w-full border border-gray-300 px-3 py-2 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition"
+                />
 
-            <p
-              onClick={() => setIsRegister(!isRegister)}
-              className="text-xs text-gray-400 text-center cursor-pointer"
-            >
-              {isRegister
-                ? "¿Ya tienes cuenta? Inicia sesión"
-                : "¿No tienes cuenta? Regístrate"}
-            </p>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Contraseña"
+                  className="w-full border border-gray-300 px-3 py-2 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition"
+                />
+
+                <button
+                  onClick={isRegister ? register : login}
+                  className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+                >
+                  {isRegister ? "Crear cuenta" : "Iniciar sesión"}
+                </button>
+
+                <p
+                  onClick={() => setIsRegister(!isRegister)}
+                  className="text-xs text-gray-400 text-center cursor-pointer hover:text-gray-600 transition"
+                >
+                  {isRegister
+                    ? "¿Ya tienes cuenta? Inicia sesión"
+                    : "¿No tienes cuenta? Regístrate"}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       ) : (
@@ -417,9 +436,9 @@ export default function Home() {
             </div>
           )}
           <SidebarProvider>
-            <div className="flex min-h-screen w-full">
-              <AppSidebar />
-              <SidebarInset className="flex-1 bg-gray-100">
+            <div className="group/sidebar-wrapper flex min-h-screen w-full">
+              <AppSidebar view={view} setView={setView} />
+              <SidebarInset className="flex flex-1 flex-col bg-gray-100 ml-[var(--sidebar-width)] group-data-[state=collapsed]:ml-[var(--sidebar-width-icon)] transition-all duration-200">
               {/* HEADER */}
               <header className="flex h-16 items-center gap-2 px-4 border-b bg-white">
                 <SidebarTrigger className="-ml-1" />
@@ -454,7 +473,7 @@ export default function Home() {
               </header>
 
               {/* CONTENT */}
-              <div className="p-6 overflow-y-auto flex-1 pb-20">
+              <div className="flex-1 p-6 overflow-y-auto pb-20">
                 {view === "reservations" && (
                   <div>
                     <div className="space-y-6">
