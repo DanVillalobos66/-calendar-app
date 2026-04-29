@@ -160,20 +160,20 @@ export function AppSidebar({ view, setView, ...props }: any) {
   return (
    <Sidebar
   defaultOpen
-  collapsible="icon"
-  className="w-64 bg-white border-r text-gray-800"
+  collapsible="offcanvas"
+  className="w-64 bg-card text-card-foreground border-r border-border"
 >
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
-      <SidebarContent className="text-gray-800">
+      <SidebarContent className="text-foreground">
         <div className="px-2 py-2 space-y-1">
           <button
             onClick={() => setView("reservations")}
             className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition ${
               view === "reservations"
                 ? "bg-green-600 text-white"
-                : "hover:bg-gray-100 text-gray-700"
+                : "hover:bg-muted text-foreground"
             }`}
           >
             📊
@@ -185,7 +185,7 @@ export function AppSidebar({ view, setView, ...props }: any) {
             className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm transition ${
               view === "documentacion"
                 ? "bg-green-600 text-white"
-                : "hover:bg-gray-100 text-gray-700"
+                : "hover:bg-muted text-foreground"
             }`}
           >
             📁
@@ -195,7 +195,7 @@ export function AppSidebar({ view, setView, ...props }: any) {
         <NavMain items={data.navMain} />
         <NavProjects projects={data.projects} />
       </SidebarContent>
-      <SidebarFooter className="text-gray-800">
+      <SidebarFooter className="text-foreground">
         <NavUser user={data.user} />
       </SidebarFooter>
       <SidebarRail />

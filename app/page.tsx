@@ -39,13 +39,20 @@ export default function Home() {
   const [saving, setSaving] = useState<Record<string, boolean>>({});
 
   // Dark mode state
-  const [dark, setDark] = useState(false);
+  const [dark, setDark] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("theme") === "dark";
+    }
+    return false;
+  });
 
   useEffect(() => {
     if (dark) {
       document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
     } else {
       document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
     }
   }, [dark]);
 
@@ -375,16 +382,16 @@ export default function Home() {
   // ---------- END COMPONENTS ----------
 
   return (
-    <div>
+    <div className="min-h-screen bg-background text-foreground">
       {loadingAuth ? (
         <div className="min-h-screen flex items-center justify-center">
           Cargando...
         </div>
       ) : !user ? (
-        <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-100 p-6">
+        <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background text-foreground p-6">
           <div className="flex w-full max-w-sm flex-col gap-6">
             {/* LOGO */}
-            <div className="flex items-center gap-2 self-center font-medium text-gray-700">
+            <div className="flex items-center gap-2 self-center font-medium text-foreground">
               <div className="flex size-6 items-center justify-center rounded-md bg-green-600 text-white">
                 🌿
               </div>
@@ -392,12 +399,12 @@ export default function Home() {
             </div>
 
             {/* CARD */}
-            <div className="bg-white rounded-2xl shadow-md border p-6">
+            <div className="bg-card rounded-2xl shadow-md border border-border p-6">
               <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold text-gray-800">
+                <h2 className="text-xl font-semibold text-foreground">
                   Bienvenido 👋
                 </h2>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Inicia sesión para continuar
                 </p>
               </div>
@@ -407,7 +414,7 @@ export default function Home() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Correo electrónico"
-                  className="w-full border border-gray-300 px-3 py-2 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition"
+                  className="w-full border border-border bg-muted text-foreground px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-card transition"
                 />
 
                 <input
@@ -415,7 +422,7 @@ export default function Home() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Contraseña"
-                  className="w-full border border-gray-300 px-3 py-2 rounded-lg bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition"
+                  className="w-full border border-border bg-muted text-foreground px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-card transition"
                 />
 
                 <button
@@ -427,7 +434,7 @@ export default function Home() {
 
                 <p
                   onClick={() => setIsRegister(!isRegister)}
-                  className="text-xs text-gray-400 text-center cursor-pointer hover:text-gray-600 transition"
+                  className="text-xs text-muted-foreground text-center cursor-pointer hover:text-foreground transition"
                 >
                   {isRegister
                     ? "¿Ya tienes cuenta? Inicia sesión"
@@ -447,14 +454,14 @@ export default function Home() {
           <SidebarProvider>
             <div className="group/sidebar-wrapper flex min-h-screen w-full">
               <AppSidebar view={view} setView={setView} />
-              <SidebarInset className="flex flex-1 flex-col bg-gray-100 ml-[var(--sidebar-width)] group-data-[state=collapsed]:ml-[var(--sidebar-width-icon)] transition-all duration-200">
+              <SidebarInset className="flex flex-1 flex-col bg-background text-foreground transition-all duration-200 md:ml-[var(--sidebar-width)] peer-data-[state=collapsed]:md:ml-[var(--sidebar-width-icon)]">
                 {/* HEADER */}
-                <header className="flex h-16 items-center gap-2 px-4 border-b bg-white">
-                  <SidebarTrigger className="-ml-1 text-gray-600 hover:text-black hover:bg-gray-100 rounded-md" />
+                <header className="flex h-16 items-center gap-2 px-4 border-b border-border bg-card text-card-foreground">
+                  <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md" />
 
                   <div className="flex flex-col">
-                    <span className="text-xs text-gray-400">Inicio</span>
-                    <span className="font-semibold text-gray-700">
+                    <span className="text-xs text-muted-foreground">Inicio</span>
+                    <span className="font-semibold text-foreground">
                       {view === "documentacion"
                         ? "Documentación"
                         : "Reservations"}
@@ -466,31 +473,23 @@ export default function Home() {
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       placeholder="Search..."
-                      className="border rounded px-3 py-1 text-sm"
+                      className="border border-border bg-muted text-foreground rounded px-3 py-1 text-sm"
                     />
                     <button
-                      onClick={() => {
-                        const newDark = !dark;
-                        setDark(newDark);
-                        if (newDark) {
-                          document.documentElement.classList.add("dark");
-                        } else {
-                          document.documentElement.classList.remove("dark");
-                        }
-                      }}
+                      onClick={() => setDark(!dark)}
                       className={`relative flex items-center w-14 h-8 rounded-full transition-all duration-300 shadow-inner ${
-                        dark ? "bg-gray-800" : "bg-gray-200"
+                        dark ? "bg-muted" : "bg-muted"
                       }`}
                     >
                       <div
                         className={`absolute top-1 left-1 w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 shadow-md ${
                           dark
-                            ? "translate-x-6 bg-gray-900"
-                            : "translate-x-0 bg-white"
+                            ? "translate-x-6 bg-card"
+                            : "translate-x-0 bg-card"
                         }`}
                       >
                         {dark ? (
-                          <Moon className="w-4 h-4 text-gray-300" />
+                          <Moon className="w-4 h-4 text-foreground" />
                         ) : (
                           <Sun className="w-4 h-4 text-yellow-500" />
                         )}
@@ -498,7 +497,7 @@ export default function Home() {
                     </button>
                     <button
                       onClick={logout}
-                      className="text-sm px-4 py-1.5 rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all duration-200 shadow-sm hover:shadow-md border border-gray-200"
+                      className="text-sm px-4 py-1.5 rounded-full bg-muted text-foreground hover:bg-muted transition-all duration-200 shadow-sm hover:shadow-md border border-border"
                     >
                       Logout
                     </button>
@@ -512,20 +511,20 @@ export default function Home() {
                       <div className="space-y-6">
                         {/* CARDS */}
                         <div className="grid grid-cols-4 gap-4">
-                          <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
-                            <p className="text-sm text-gray-400">
+                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                            <p className="text-sm text-muted-foreground">
                               Total Reservas
                             </p>
-                            <p className="text-2xl font-semibold text-gray-800">
+                            <p className="text-2xl font-semibold text-foreground">
                               {reservations.length}
                             </p>
                           </div>
 
-                          <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
-                            <p className="text-sm text-gray-400">
+                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                            <p className="text-sm text-muted-foreground">
                               Días Ocupados
                             </p>
-                            <p className="text-2xl font-semibold text-gray-800">
+                            <p className="text-2xl font-semibold text-foreground">
                               {
                                 new Set(
                                   (Array.isArray(reservations)
@@ -549,9 +548,9 @@ export default function Home() {
                           </div>
 
                           {/* NOCHES CARD */}
-                          <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
-                            <p className="text-sm text-gray-400">Noches</p>
-                            <p className="text-2xl font-semibold text-gray-800">
+                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                            <p className="text-sm text-muted-foreground">Noches</p>
+                            <p className="text-2xl font-semibold text-foreground">
                               {reservations.reduce((acc, r) => {
                                 const start = new Date(r.checkIn);
                                 const end = new Date(r.checkOut);
@@ -564,16 +563,16 @@ export default function Home() {
                             </p>
                           </div>
 
-                          <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
-                            <p className="text-sm text-gray-400">Propiedades</p>
-                            <p className="text-2xl font-semibold text-gray-800">
+                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                            <p className="text-sm text-muted-foreground">Propiedades</p>
+                            <p className="text-2xl font-semibold text-foreground">
                               {properties.length}
                             </p>
                           </div>
 
                           {/* SaaS Occupancy % card */}
-                          <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
-                            <p className="text-sm text-gray-400">
+                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                            <p className="text-sm text-muted-foreground">
                               Ocupación % (mes)
                             </p>
                             <p className="text-2xl font-semibold text-indigo-600">
@@ -611,8 +610,8 @@ export default function Home() {
                           </div>
 
                           {/* ADR CARD */}
-                          <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
-                            <p className="text-sm text-gray-400">ADR</p>
+                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                            <p className="text-sm text-muted-foreground">ADR</p>
                             <p className="text-2xl font-semibold text-blue-600">
                               {(() => {
                                 const paid = reservations.filter((r) => {
@@ -641,8 +640,8 @@ export default function Home() {
                             </p>
                           </div>
 
-                          <div className="bg-white rounded-2xl border p-4 shadow-sm hover:shadow-md transition">
-                            <p className="text-sm text-gray-400">
+                          <div className="bg-card rounded-2xl border border-border p-4 shadow-sm hover:shadow-md transition">
+                            <p className="text-sm text-muted-foreground">
                               Ingresos Totales
                             </p>
                             <p className="text-2xl font-bold text-green-600">
@@ -662,8 +661,8 @@ export default function Home() {
                         </div>
 
                         {/* GRAFICA SIMPLE */}
-                        <div className="bg-white rounded-2xl border p-6">
-                          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                        <div className="bg-card rounded-2xl border border-border p-6">
+                          <h3 className="text-lg font-semibold text-foreground mb-4">
                             Ocupación (visual)
                           </h3>
 
@@ -705,7 +704,7 @@ export default function Home() {
                                       minHeight: count > 0 ? "20px" : "6px",
                                     }}
                                   />
-                                  <span className="text-[10px] text-gray-400 mt-1">
+                                  <span className="text-[10px] text-muted-foreground mt-1">
                                     {days[i].getDate()}
                                   </span>
                                 </div>
@@ -715,8 +714,8 @@ export default function Home() {
                         </div>
 
                         {/* SaaS Revenue Trend (line-style visual) */}
-                        <div className="bg-white rounded-2xl border p-6">
-                          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                        <div className="bg-card rounded-2xl border border-border p-6">
+                          <h3 className="text-lg font-semibold text-foreground mb-4">
                             Tendencia ingresos 📈
                           </h3>
 
@@ -741,7 +740,7 @@ export default function Home() {
                                       minHeight: "6px",
                                     }}
                                   />
-                                  <span className="text-[10px] text-gray-400 mt-1">
+                                  <span className="text-[10px] text-muted-foreground mt-1">
                                     {new Date(m + "-01").toLocaleString(
                                       "es-MX",
                                       {
@@ -756,18 +755,18 @@ export default function Home() {
                         </div>
 
                         {/* MONTHLY INCOME DASHBOARD */}
-                        <div className="bg-white rounded-2xl border p-6">
+                        <div className="bg-card rounded-2xl border border-border p-6">
                           <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-semibold text-gray-800">
+                            <h3 className="text-lg font-semibold text-foreground">
                               Ingresos por mes 💰
                             </h3>
-                            <span className="text-xs text-gray-400">
+                            <span className="text-xs text-muted-foreground">
                               Vista mensual
                             </span>
                           </div>
 
                           {months.length === 0 && (
-                            <div className="text-center text-gray-400 text-sm py-10">
+                            <div className="text-center text-muted-foreground text-sm py-10">
                               No hay ingresos registrados 📉
                             </div>
                           )}
@@ -793,11 +792,11 @@ export default function Home() {
                               return (
                                 <div className="relative h-64">
                                   {/* GRID LINES */}
-                                  <div className="absolute inset-0 flex flex-col justify-between text-[10px] text-gray-300">
+                                  <div className="absolute inset-0 flex flex-col justify-between text-[10px] text-muted-foreground">
                                     {[100, 75, 50, 25, 0].map((p) => (
                                       <div
                                         key={p}
-                                        className="border-t border-gray-200 relative"
+                                        className="border-t border-border relative"
                                       >
                                         <span className="absolute -top-2 left-0">
                                           $
@@ -832,7 +831,7 @@ export default function Home() {
                                             }}
                                           />
 
-                                          <span className="text-xs text-gray-500 mt-2">
+                                          <span className="text-xs text-muted-foreground mt-2">
                                             {new Date(m + "-01").toLocaleString(
                                               "es-MX",
                                               {
@@ -841,7 +840,7 @@ export default function Home() {
                                             )}
                                           </span>
 
-                                          <span className="text-[10px] text-gray-400 opacity-0 group-hover:opacity-100 transition">
+                                          <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition">
                                             ${value.toLocaleString()}
                                           </span>
                                         </div>
@@ -854,8 +853,8 @@ export default function Home() {
                         </div>
 
                         {/* SaaS Top Property Ranking */}
-                        <div className="bg-white rounded-2xl border p-6">
-                          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                        <div className="bg-card rounded-2xl border border-border p-6">
+                          <h3 className="text-lg font-semibold text-foreground mb-4">
                             Top propiedades 🏆
                           </h3>
 
@@ -884,12 +883,12 @@ export default function Home() {
                             .map((item, i) => (
                               <div
                                 key={i}
-                                className="flex justify-between py-2 border-b text-sm"
+                                className="flex justify-between py-2 border-b border-border text-sm"
                               >
-                                <span className="font-medium text-gray-700">
+                                <span className="font-medium text-foreground">
                                   {item.prop}
                                 </span>
-                                <span className="text-gray-500">
+                                <span className="text-muted-foreground">
                                   ${item.revenue.toLocaleString()} ·{" "}
                                   {item.count} reservas
                                 </span>
@@ -898,8 +897,8 @@ export default function Home() {
                         </div>
 
                         {/* MULTI PROPIEDADES */}
-                        <div className="bg-white rounded-2xl border p-6">
-                          <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                        <div className="bg-card rounded-2xl border border-border p-6">
+                          <h3 className="text-lg font-semibold text-foreground mb-4">
                             Propiedades
                           </h3>
 
@@ -930,12 +929,12 @@ export default function Home() {
                             return (
                               <div
                                 key={prop}
-                                className="flex justify-between items-center border-b py-3"
+                                className="flex justify-between items-center border-b border-border py-3"
                               >
-                                <span className="font-medium text-gray-700">
+                                <span className="font-medium text-foreground">
                                   {prop}
                                 </span>
-                                <span className="text-sm text-gray-500">
+                                <span className="text-sm text-muted-foreground">
                                   {propReservations.length} reservas · $
                                   {totalIncome.toLocaleString()}
                                 </span>
@@ -945,9 +944,9 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="mt-6">
-                        <div className="bg-white rounded-lg border">
+                        <div className="bg-card rounded-lg border border-border">
                           {/* TABLE HEADER */}
-                          <div className="grid grid-cols-7 text-sm font-medium text-gray-700 border-b p-3">
+                          <div className="grid grid-cols-7 text-sm font-medium text-foreground border-b border-border p-3">
                             <div>Guest</div>
                             <div>Check-in</div>
                             <div>Check-out</div>
@@ -980,9 +979,9 @@ export default function Home() {
                             .map((r, i) => (
                               <div
                                 key={i}
-                                className="grid grid-cols-7 p-3 text-sm text-gray-800 border-b hover:bg-gray-100 hover:shadow-sm transition"
+                                className="grid grid-cols-7 p-3 text-sm text-foreground border-b border-border hover:bg-muted hover:shadow-sm transition"
                               >
-                                <div className="font-medium text-gray-900">
+                                <div className="font-medium text-foreground">
                                   {r.name}
                                 </div>
                                 <div>{r.checkIn}</div>
@@ -1001,7 +1000,7 @@ export default function Home() {
                                 <div className="flex flex-col items-center justify-center">
                                   {editing[getKey(r)] ? (
                                     <div className="flex items-center gap-1">
-                                      <span className="text-gray-500 text-sm">
+                                      <span className="text-muted-foreground text-sm">
                                         $
                                       </span>
                                       <input
@@ -1032,7 +1031,7 @@ export default function Home() {
                                           }, 150);
                                         }}
                                         placeholder="   "
-                                        className="w-20 bg-white border border-gray-300 rounded-md px-2 py-1 text-sm text-gray-800 text-right focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                                        className="w-20 bg-card border border-border rounded-md px-2 py-1 text-sm text-foreground text-right focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
                                       />
                                     </div>
                                   ) : (
@@ -1043,7 +1042,7 @@ export default function Home() {
                                           [getKey(r)]: true,
                                         }))
                                       }
-                                      className="flex items-center justify-center cursor-pointer hover:bg-gray-200 px-2 py-1 rounded-md transition"
+                                      className="flex items-center justify-center cursor-pointer hover:bg-muted px-2 py-1 rounded-md transition"
                                     >
                                       <span className="text-sm font-semibold text-green-600">
                                         {(() => {
@@ -1076,7 +1075,7 @@ export default function Home() {
                                           }))
                                         }
                                         placeholder="Nombre"
-                                        className="w-28 bg-white border border-gray-300 rounded-md px-2 py-1 text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        className="w-28 bg-card border border-border rounded-md px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-blue-500"
                                       />
                                     </>
                                   ) : (
@@ -1087,14 +1086,14 @@ export default function Home() {
                                           [getKey(r)]: true,
                                         }))
                                       }
-                                      className="w-28 text-center text-sm text-gray-700 cursor-pointer hover:bg-gray-100 px-2 py-1 rounded-md"
+                                      className="w-28 text-center text-sm text-foreground cursor-pointer hover:bg-muted px-2 py-1 rounded-md"
                                     >
                                       {names[getKey(r)] || "---"}
                                     </span>
                                   )}
                                 </div>
                                 {saving[getKey(r)] && (
-                                  <span className="text-[10px] text-gray-400">
+                                  <span className="text-[10px] text-muted-foreground">
                                     Guardando...
                                   </span>
                                 )}
@@ -1122,10 +1121,10 @@ export default function Home() {
                       </div>
 
                       <div className="mt-6">
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                        <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
                           {/* HEADER */}
                           <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-semibold text-gray-800 tracking-tight">
+                            <h2 className="text-2xl font-semibold text-foreground tracking-tight">
                               {new Date(month + "-01").toLocaleString("es-MX", {
                                 month: "long",
                                 year: "numeric",
@@ -1135,7 +1134,7 @@ export default function Home() {
                             <select
                               value={month}
                               onChange={(e) => setMonth(e.target.value)}
-                              className="border border-gray-200 px-3 py-1.5 rounded-lg text-sm bg-gray-50"
+                              className="border border-border px-3 py-1.5 rounded-lg text-sm bg-muted text-foreground"
                             >
                               <option value="2026-04">Abril 2026</option>
                               <option value="2026-05">Mayo 2026</option>
@@ -1144,7 +1143,7 @@ export default function Home() {
                           </div>
 
                           {/* WEEK DAYS */}
-                          <div className="grid grid-cols-7 text-xs text-gray-400 mb-3 px-2">
+                          <div className="grid grid-cols-7 text-xs text-muted-foreground mb-3 px-2">
                             {[
                               "lun.",
                               "mar.",
@@ -1179,7 +1178,7 @@ export default function Home() {
                                 <div
                                   key={day}
                                   onClick={() => setSelectedDate(dateStr)}
-                                  className={`bg-gray-50 border border-gray-200 rounded-2xl p-3 h-32 flex flex-col justify-between hover:shadow-md hover:scale-[1.02] transition cursor-pointer ${
+                                  className={`bg-muted border border-border rounded-2xl p-3 h-32 flex flex-col justify-between hover:shadow-md hover:scale-[1.02] transition cursor-pointer ${
                                     dateStr === todayStr
                                       ? "border-blue-500 bg-blue-50"
                                       : ""
@@ -1189,7 +1188,7 @@ export default function Home() {
                                       : ""
                                   }`}
                                 >
-                                  <div className="text-sm font-medium text-gray-700">
+                                  <div className="text-sm font-medium text-foreground">
                                     {day}
                                   </div>
 
@@ -1202,7 +1201,7 @@ export default function Home() {
                                           title={`${r.name} - ${names[getKey(r)] || "Guest"} (${r.checkIn} → ${r.checkOut})`}
                                           className={`text-[10px] px-2 py-1 rounded-full truncate hover:scale-105 transition ${
                                             propertyColors[r.name] ||
-                                            "bg-gray-200 text-gray-700"
+                                            "bg-muted text-foreground"
                                           }`}
                                         >
                                           {r.name} ·{" "}
@@ -1229,36 +1228,36 @@ export default function Home() {
                     <div className="grid grid-cols-3 gap-6">
                       <div
                         onClick={() => router.push("/documentacion/neea")}
-                        className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition cursor-pointer"
+                        className="bg-card rounded-2xl border border-border p-6 shadow-sm hover:shadow-md transition cursor-pointer"
                       >
-                        <h3 className="text-lg font-semibold text-gray-800">
+                        <h3 className="text-lg font-semibold text-foreground">
                           NEEA
                         </h3>
-                        <p className="text-sm text-gray-400 mt-2">
+                        <p className="text-sm text-muted-foreground mt-2">
                           Documentación de propiedades NEEA
                         </p>
                       </div>
 
                       <div
                         onClick={() => router.push("/documentacion/toh")}
-                        className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition cursor-pointer"
+                        className="bg-card rounded-2xl border border-border p-6 shadow-sm hover:shadow-md transition cursor-pointer"
                       >
-                        <h3 className="text-lg font-semibold text-gray-800">
+                        <h3 className="text-lg font-semibold text-foreground">
                           Villas TOH
                         </h3>
-                        <p className="text-sm text-gray-400 mt-2">
+                        <p className="text-sm text-muted-foreground mt-2">
                           Documentación Villas TOH
                         </p>
                       </div>
 
                       <div
                         onClick={() => router.push("/documentacion/puebla")}
-                        className="bg-white rounded-2xl border p-6 shadow-sm hover:shadow-md transition cursor-pointer"
+                        className="bg-card rounded-2xl border border-border p-6 shadow-sm hover:shadow-md transition cursor-pointer"
                       >
-                        <h3 className="text-lg font-semibold text-gray-800">
+                        <h3 className="text-lg font-semibold text-foreground">
                           Puebla
                         </h3>
-                        <p className="text-sm text-gray-400 mt-2">
+                        <p className="text-sm text-muted-foreground mt-2">
                           Documentación Puebla
                         </p>
                       </div>
