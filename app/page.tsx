@@ -4,9 +4,9 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Sun, Moon } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 import StatsCards from "@/components/dashboard/StatsCards";
 
@@ -19,6 +19,7 @@ import PropertiesList from "@/components/dashboard/charts/PropertiesList";
 import ReservationsTable from "@/components/dashboard/ReservationsTable";
 
 import Calendar from "@/components/dashboard/Calendar";
+import DocumentationSection from "@/components/dashboard/DocumentationSection";
 
 import {
   SidebarInset,
@@ -45,14 +46,6 @@ export default function Home() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  const supabase = useMemo(() => {
-    if (supabaseUrl && supabaseKey) {
-      return createClient(supabaseUrl, supabaseKey);
-    } else {
-      console.error("❌ Supabase no configurado correctamente");
-      return null;
-    }
-  }, [supabaseUrl, supabaseKey]);
   if (!supabaseUrl || !supabaseKey) {
     console.error("Supabase ENV missing:", supabaseUrl, supabaseKey);
   }
@@ -91,7 +84,6 @@ export default function Home() {
   // AUTH FUNCTIONS
   // =====================
   const login = async () => {
-    if (!supabase) return alert("Supabase no configurado");
     if (!email || !password) return alert("Faltan datos");
 
     const { error } = await supabase.auth.signInWithPassword({
@@ -102,7 +94,11 @@ export default function Home() {
     if (error) {
       console.error("Login error:", error.message);
       alert("Error: " + error.message);
+      return;
     }
+
+    // 🔥 fuerza navegación limpia al dashboard
+    router.replace("/");
   };
 
   const register = async () => {
@@ -114,6 +110,9 @@ export default function Home() {
       password,
       options: {
         emailRedirectTo: window.location.origin,
+        data: {
+          name: email.split("@")[0], // provisional
+        },
       },
     });
 
@@ -124,10 +123,20 @@ export default function Home() {
     }
   };
 
-  const logout = async () => {
-    if (!supabase) return alert("Supabase no configurado");
-    await supabase.auth.signOut();
+  const logout = () => {
+    try {
+      // 🔥 NO esperar respuesta → evita lag
+      supabase.auth.signOut({ scope: "local" });
+    } catch (e) {
+      console.error("Logout error:", e);
+    }
+
+    // 🔥 corta todo inmediatamente
     setUser(null);
+    setLoadingAuth(false);
+
+    // 🔥 navegación instantánea sin esperar
+    router.replace("/");
   };
 
   const role = user?.email === "admin@demo.com" ? "admin" : "viewer";
@@ -317,23 +326,46 @@ export default function Home() {
   // =====================
   // Load user + listen auth changes
   useEffect(() => {
-    if (!supabase) return;
+  let mounted = true;
+  let initialized = false;
 
-    // 🔥 Force login screen always (ignore existing session)
-    supabase.auth.signOut();
-    setUser(null);
-    setLoadingAuth(false);
+  const initSession = async () => {
+    if (initialized) return; // 🚫 evita doble ejecución
+    initialized = true;
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user || null);
-      },
-    );
+    try {
+      const { data } = await supabase.auth.getSession();
 
-    return () => {
-      listener?.subscription.unsubscribe();
-    };
-  }, [supabase]);
+      if (!mounted) return;
+
+      setUser(data.session?.user || null);
+    } catch (err) {
+      console.error("Auth error:", err);
+    } finally {
+      if (mounted) setLoadingAuth(false);
+    }
+  };
+
+  // 🔥 delay evita conflicto con React Strict Mode
+  const timer = setTimeout(initSession, 50);
+
+  const { data: listener } = supabase.auth.onAuthStateChange(
+    (_event, session) => {
+      if (mounted) {
+        // 🔥 evita re-render innecesario en logout
+        if (session?.user?.id !== user?.id) {
+          setUser(session?.user || null);
+        }
+      }
+    }
+  );
+
+  return () => {
+    mounted = false;
+    clearTimeout(timer);
+    listener?.subscription.unsubscribe();
+  };
+}, []);
 
   // =====================
   // DATA FETCHING
@@ -497,7 +529,7 @@ export default function Home() {
           {/* ===================== DASHBOARD LAYOUT ===================== */}
           <SidebarProvider>
             <div className="group/sidebar-wrapper flex min-h-screen w-full">
-              <AppSidebar view={view} setView={setView} />
+              <AppSidebar view={view} setView={setView} user={user} />
               <SidebarInset className="flex flex-1 flex-col bg-background text-foreground transition-all duration-200 md:ml-[var(--sidebar-width)] peer-data-[state=collapsed]:md:ml-[var(--sidebar-width-icon)]">
                 {/* HEADER */}
                 <header className="flex h-16 items-center gap-2 px-6 border-b border-border bg-card/70 backdrop-blur supports-[backdrop-filter]:bg-card/60 text-card-foreground shadow-sm">
@@ -629,43 +661,7 @@ export default function Home() {
                   {view === "documentacion" && (
                     <>
                       {/* ===================== DOCUMENTATION VIEW ===================== */}
-                      <div className="grid grid-cols-3 gap-6">
-                        <div
-                          onClick={() => router.push("/documentacion/neea")}
-                          className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm hover:shadow-md transition cursor-pointer"
-                        >
-                          <h3 className="text-lg font-semibold text-foreground">
-                            NEEA
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            Documentación de propiedades NEEA
-                          </p>
-                        </div>
-
-                        <div
-                          onClick={() => router.push("/documentacion/toh")}
-                          className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm hover:shadow-md transition cursor-pointer"
-                        >
-                          <h3 className="text-lg font-semibold text-foreground">
-                            Villas TOH
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            Documentación Villas TOH
-                          </p>
-                        </div>
-
-                        <div
-                          onClick={() => router.push("/documentacion/puebla")}
-                          className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm hover:shadow-md transition cursor-pointer"
-                        >
-                          <h3 className="text-lg font-semibold text-foreground">
-                            Puebla
-                          </h3>
-                          <p className="text-sm text-muted-foreground mt-2">
-                            Documentación Puebla
-                          </p>
-                        </div>
-                      </div>
+                      <DocumentationSection router={router} />
                     </>
                   )}
                 </div>
