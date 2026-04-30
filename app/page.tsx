@@ -7,7 +7,19 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Sun, Moon } from "lucide-react";
+
 import StatsCards from "@/components/dashboard/StatsCards";
+
+import OccupancyChart from "@/components/dashboard/charts/OccupancyChart";
+import RevenueTrendChart from "@/components/dashboard/charts/RevenueTrendChart";
+import MonthlyIncomeChart from "@/components/dashboard/charts/MonthlyIncomeChart";
+import TopPropertiesChart from "@/components/dashboard/charts/TopPropertiesChart";
+import PropertiesList from "@/components/dashboard/charts/PropertiesList";
+
+import ReservationsTable from "@/components/dashboard/ReservationsTable";
+
+import Calendar from "@/components/dashboard/Calendar";
+
 import {
   SidebarInset,
   SidebarProvider,
@@ -492,7 +504,9 @@ export default function Home() {
                   <SidebarTrigger className="-ml-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md" />
 
                   <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground">Inicio</span>
+                    <span className="text-xs text-muted-foreground">
+                      Inicio
+                    </span>
                     <span className="font-semibold text-foreground">
                       {view === "documentacion"
                         ? "Documentación"
@@ -541,581 +555,73 @@ export default function Home() {
                   {view === "reservations" && (
                     <div>
                       <div className="space-y-6">
-                        {/* ===================== STATS CARDS ===================== */}
-<StatsCards
-  reservations={reservations}
-  properties={properties}
-  totals={totals}
-  getKey={getKey}
-  month={month}
-/>
+                        {/* ===================== STATS ===================== */}
+                        <StatsCards
+                          reservations={reservations}
+                          properties={properties}
+                          totals={totals}
+                          getKey={getKey}
+                          month={month}
+                        />
 
                         {/* ===================== CHARTS ===================== */}
-                        <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm">
-                          <h3 className="text-lg font-semibold text-foreground mb-4">
-                            Ocupación (visual)
-                          </h3>
+                        <OccupancyChart reservations={reservations} />
 
-                          <div className="flex items-end gap-2 h-32">
-                            {(() => {
-                              const today = new Date();
+                        <RevenueTrendChart
+                          months={months}
+                          monthlyIncome={monthlyIncome}
+                        />
 
-                              const days = Array.from({ length: 7 }).map(
-                                (_, i) => {
-                                  const d = new Date();
-                                  d.setDate(today.getDate() - (6 - i));
-                                  return d;
-                                },
-                              );
+                        <MonthlyIncomeChart
+                          months={months}
+                          monthlyIncome={monthlyIncome}
+                        />
 
-                              const counts = days.map((day) => {
-                                const dayStr = day.toISOString().slice(0, 10);
-                                return reservations.filter((r) => {
-                                  return (
-                                    dayStr >= r.checkIn && dayStr <= r.checkOut
-                                  );
-                                }).length;
-                              });
+                        <TopPropertiesChart
+                          reservations={reservations}
+                          totals={totals}
+                          getKey={getKey}
+                        />
 
-                              const max = Math.max(...counts, 1);
-
-                              return counts.map((count, i) => (
-                                <div
-                                  key={i}
-                                  className="flex-1 flex flex-col items-center"
-                                >
-                                  <div
-                                    className="w-full bg-blue-500 rounded-t"
-                                    style={{
-                                      height:
-                                        count > 0
-                                          ? `${(count / max) * 100}%`
-                                          : "6px",
-                                      minHeight: count > 0 ? "20px" : "6px",
-                                    }}
-                                  />
-                                  <span className="text-[10px] text-muted-foreground mt-1">
-                                    {days[i].getDate()}
-                                  </span>
-                                </div>
-                              ));
-                            })()}
-                          </div>
-                        </div>
-
-                        {/* SaaS Revenue Trend (line-style visual) */}
-                        <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm">
-                          <h3 className="text-lg font-semibold text-foreground mb-4">
-                            Tendencia ingresos 📈
-                          </h3>
-
-                          <div className="flex items-end gap-2 h-40">
-                            {months.map((m, i) => {
-                              const value = monthlyIncome[m] || 0;
-                              const max = Math.max(
-                                ...Object.values(monthlyIncome),
-                                1,
-                              );
-                              const height = (value / max) * 100;
-
-                              return (
-                                <div
-                                  key={i}
-                                  className="flex-1 flex flex-col items-center"
-                                >
-                                  <div
-                                    className="w-full bg-purple-500 rounded-t"
-                                    style={{
-                                      height: `${height}%`,
-                                      minHeight: "6px",
-                                    }}
-                                  />
-                                  <span className="text-[10px] text-muted-foreground mt-1">
-                                    {new Date(m + "-01").toLocaleString(
-                                      "es-MX",
-                                      {
-                                        month: "short",
-                                      },
-                                    )}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-
-                        {/* MONTHLY INCOME DASHBOARD */}
-                        <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm">
-                          <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-semibold text-foreground">
-                              Ingresos por mes 💰
-                            </h3>
-                            <span className="text-xs text-muted-foreground">
-                              Vista mensual
-                            </span>
-                          </div>
-
-                          {months.length === 0 && (
-                            <div className="text-center text-muted-foreground text-sm py-10">
-                              No hay ingresos registrados 📉
-                            </div>
-                          )}
-
-                          {months.length > 0 &&
-                            (() => {
-                              const values = Object.values(
-                                monthlyIncome,
-                              ) as number[];
-                              // Normalize and cap the chart scale
-                              const rawMax = Math.max(...values, 1);
-
-                              // Round max to a cleaner scale (Airbnb style)
-                              let max;
-                              if (rawMax <= 500000) {
-                                max = 500000;
-                              } else if (rawMax <= 1000000) {
-                                max = 1000000;
-                              } else {
-                                max = Math.ceil(rawMax / 500000) * 500000;
-                              }
-
-                              return (
-                                <div className="relative h-64">
-                                  {/* GRID LINES */}
-                                  <div className="absolute inset-0 flex flex-col justify-between text-[10px] text-muted-foreground">
-                                    {[100, 75, 50, 25, 0].map((p) => (
-                                      <div
-                                        key={p}
-                                        className="border-t border-border relative"
-                                      >
-                                        <span className="absolute -top-2 left-0">
-                                          $
-                                          {Math.round(
-                                            max * (p / 100),
-                                          ).toLocaleString()}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-
-                                  {/* BARS */}
-                                  <div className="absolute inset-0 flex items-end gap-6 pt-4">
-                                    {months.map((m, i) => {
-                                      const value = monthlyIncome[m] || 0;
-                                      const height = (value / max) * 100;
-
-                                      return (
-                                        <div
-                                          key={i}
-                                          className="flex-1 flex flex-col items-center group"
-                                        >
-                                          <div
-                                            className="w-full max-w-[40px] bg-green-500 rounded-lg shadow-md transition-all duration-300 hover:bg-green-600"
-                                            style={{
-                                              height:
-                                                value > 0
-                                                  ? `${height}%`
-                                                  : "6px",
-                                              minHeight:
-                                                value > 0 ? "30px" : "6px",
-                                            }}
-                                          />
-
-                                          <span className="text-xs text-muted-foreground mt-2">
-                                            {new Date(m + "-01").toLocaleString(
-                                              "es-MX",
-                                              {
-                                                month: "short",
-                                              },
-                                            )}
-                                          </span>
-
-                                          <span className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition">
-                                            ${value.toLocaleString()}
-                                          </span>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                        </div>
-
-                        {/* SaaS Top Property Ranking */}
-                        <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm">
-                          <h3 className="text-lg font-semibold text-foreground mb-4">
-                            Top propiedades 🏆
-                          </h3>
-
-                          {Array.from(new Set(reservations.map((r) => r.name)))
-                            .map((prop) => {
-                              const propReservations = reservations.filter(
-                                (r) => r.name === prop,
-                              );
-
-                              const revenue = propReservations.reduce(
-                                (acc, r) => {
-                                  const key = getKey(r);
-                                  return acc + Number(totals[key] || 0);
-                                },
-                                0,
-                              );
-
-                              return {
-                                prop,
-                                revenue,
-                                count: propReservations.length,
-                              };
-                            })
-                            .sort((a, b) => b.revenue - a.revenue)
-                            .slice(0, 5)
-                            .map((item, i) => (
-                              <div
-                                key={i}
-                                className="flex justify-between py-2 border-b border-border text-sm"
-                              >
-                                <span className="font-medium text-foreground">
-                                  {item.prop}
-                                </span>
-                                <span className="text-muted-foreground">
-                                  ${item.revenue.toLocaleString()} ·{" "}
-                                  {item.count} reservas
-                                </span>
-                              </div>
-                            ))}
-                        </div>
-
-                        {/* MULTI PROPIEDADES */}
-                        <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm">
-                          <h3 className="text-lg font-semibold text-foreground mb-4">
-                            Propiedades
-                          </h3>
-
-                          {[
-                            "VILLAS TOH",
-                            "NEEA 102",
-                            "NEEA 103",
-                            "NEEA 201",
-                            "NEEA 202",
-                            "NEEA 303",
-                          ].map((prop) => {
-                            const propReservations = reservations.filter(
-                              (r) => r.name === prop,
-                            );
-
-                            const totalIncome = propReservations.reduce(
-                              (acc, r) => {
-                                const key = getKey(r);
-                                const raw = totals[key] || "";
-                                const amount = raw
-                                  ? Number(String(raw).replace(/[^0-9]/g, ""))
-                                  : 0;
-                                return acc + amount;
-                              },
-                              0,
-                            );
-
-                            return (
-                              <div
-                                key={prop}
-                                className="flex justify-between items-center border-b border-border py-3"
-                              >
-                                <span className="font-medium text-foreground">
-                                  {prop}
-                                </span>
-                                <span className="text-sm text-muted-foreground">
-                                  {propReservations.length} reservas · $
-                                  {totalIncome.toLocaleString()}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <PropertiesList
+                          reservations={reservations}
+                          totals={totals}
+                          getKey={getKey}
+                        />
                       </div>
                       <div className="mt-6">
                         {/* ===================== RESERVATIONS TABLE ===================== */}
-                        <div className="bg-card rounded-lg border border-border">
-                          {/* TABLE HEADER */}
-                          <div className="grid grid-cols-7 text-sm font-medium text-foreground border-b border-border p-3">
-                            <div>Guest</div>
-                            <div>Check-in</div>
-                            <div>Check-out</div>
-                            <div>Channel</div>
-                            <div className="text-center">Total</div>
-                            <div className="text-center">Nombre</div>
-                            <div>Status</div>
-                          </div>
-
-                          {/* DYNAMIC ROWS */}
-                          {reservations
-                            .sort(
-                              (a, b) =>
-                                new Date(a.checkIn).getTime() -
-                                new Date(b.checkIn).getTime(),
-                            )
-                            .filter((r) => {
-                              const key = getKey(r);
-                              const guest = (names[key] || "").toLowerCase();
-                              const searchText = search.toLowerCase();
-
-                              const matchesProperty =
-                                r.name.toLowerCase().includes(searchText) &&
-                                userProperties.includes(r.name);
-
-                              const matchesGuest = guest.includes(searchText);
-
-                              return matchesProperty || matchesGuest;
-                            })
-                            .map((r, i) => (
-                              <div
-                                key={i}
-                                className="grid grid-cols-7 p-3 text-sm text-foreground border-b border-border hover:bg-muted hover:shadow-sm transition"
-                              >
-                                <div className="font-medium text-foreground">
-                                  {r.name}
-                                </div>
-                                <div>{r.checkIn}</div>
-                                <div>{r.checkOut}</div>
-                                <div>
-                                  <span
-                                    className={`px-2 py-1 rounded text-xs font-medium ${
-                                      r.channel === "Website"
-                                        ? "bg-orange-100 text-orange-600"
-                                        : "bg-blue-100 text-blue-600"
-                                    }`}
-                                  >
-                                    {r.channel}
-                                  </span>
-                                </div>
-                                <div className="flex flex-col items-center justify-center">
-                                  {editing[getKey(r)] ? (
-                                    <div className="flex items-center gap-1">
-                                      <span className="text-muted-foreground text-sm">
-                                        $
-                                      </span>
-                                      <input
-                                        autoFocus
-                                        value={
-                                          typeof totals[getKey(r)] === "string"
-                                            ? totals[getKey(r)]
-                                            : ""
-                                        }
-                                        onChange={(e) => {
-                                          const raw = String(
-                                            e.target.value || "",
-                                          ).replace(/[^0-9]/g, "");
-                                          setTotals((prev) => ({
-                                            ...prev,
-                                            [getKey(r)]: raw === "" ? "" : raw,
-                                          }));
-
-                                          debouncedSave(r);
-                                        }}
-                                        onBlur={() => {
-                                          // delay to allow typing stability
-                                          setTimeout(() => {
-                                            setEditing((prev) => ({
-                                              ...prev,
-                                              [getKey(r)]: false,
-                                            }));
-                                          }, 150);
-                                        }}
-                                        placeholder="   "
-                                        className="w-20 bg-card border border-border rounded-md px-2 py-1 text-sm text-foreground text-right focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                                      />
-                                    </div>
-                                  ) : (
-                                    <div
-                                      onClick={() =>
-                                        setEditing((prev) => ({
-                                          ...prev,
-                                          [getKey(r)]: true,
-                                        }))
-                                      }
-                                      className="flex items-center justify-center cursor-pointer hover:bg-muted px-2 py-1 rounded-md transition"
-                                    >
-                                      <span className="text-sm font-semibold text-green-600">
-                                        {(() => {
-                                          const raw = String(
-                                            totals[getKey(r)] ?? r.total ?? "",
-                                          ).replace(/[^0-9]/g, "");
-                                          if (!raw) return "";
-                                          const num = parseInt(raw, 10);
-                                          if (isNaN(num)) return "";
-                                          return `$${num.toLocaleString()}`;
-                                        })()}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex justify-center items-center">
-                                  {editingName[getKey(r)] ? (
-                                    <>
-                                      <input
-                                        autoFocus
-                                        value={names[getKey(r)] || ""}
-                                        onChange={(e) => {
-                                          handleNameChange(r, e.target.value);
-                                          debouncedSave(r);
-                                        }}
-                                        onBlur={() =>
-                                          setEditingName((prev) => ({
-                                            ...prev,
-                                            [getKey(r)]: false,
-                                          }))
-                                        }
-                                        placeholder="Nombre"
-                                        className="w-28 bg-card border border-border rounded-md px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                      />
-                                    </>
-                                  ) : (
-                                    <span
-                                      onClick={() =>
-                                        setEditingName((prev) => ({
-                                          ...prev,
-                                          [getKey(r)]: true,
-                                        }))
-                                      }
-                                      className="w-28 text-center text-sm text-foreground cursor-pointer hover:bg-muted px-2 py-1 rounded-md"
-                                    >
-                                      {names[getKey(r)] || "---"}
-                                    </span>
-                                  )}
-                                </div>
-                                {saving[getKey(r)] && (
-                                  <span className="text-[10px] text-muted-foreground">
-                                    Guardando...
-                                  </span>
-                                )}
-                                <div className="flex items-center gap-2">
-                                  <span
-                                    className={`px-2 py-1 rounded text-xs font-medium ${
-                                      r.status === "Reserved"
-                                        ? "bg-blue-100 text-blue-700"
-                                        : "bg-green-100 text-green-700"
-                                    }`}
-                                  >
-                                    {r.status}
-                                  </span>
-                                  <button
-                                    onClick={() => saveRow(r)}
-                                    disabled={saving[getKey(r)]}
-                                    className="bg-green-600 text-white text-xs px-3 py-1 rounded hover:bg-green-700 disabled:opacity-50"
-                                  >
-                                    {saving[getKey(r)] ? "..." : "Guardar"}
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                        </div>
+                        <ReservationsTable
+                          reservations={reservations}
+                          search={search}
+                          names={names}
+                          totals={totals}
+                          editing={editing}
+                          editingName={editingName}
+                          saving={saving}
+                          getKey={getKey}
+                          setEditing={setEditing}
+                          setEditingName={setEditingName}
+                          setTotals={setTotals}
+                          handleNameChange={handleNameChange}
+                          debouncedSave={debouncedSave}
+                          saveRow={saveRow}
+                          userProperties={userProperties}
+                        />
                       </div>
-
-
-
-
 
                       <div className="mt-6">
                         {/* ===================== CALENDAR ===================== */}
-                        <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
-                          {/* HEADER */}
-                          <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-semibold text-foreground tracking-tight">
-                              {new Date(month + "-01").toLocaleString("es-MX", {
-                                month: "long",
-                                year: "numeric",
-                              })}
-                            </h2>
-
-                            <select
-                              value={month}
-                              onChange={(e) => setMonth(e.target.value)}
-                              className="border border-border px-3 py-1.5 rounded-lg text-sm bg-muted text-foreground"
-                            >
-                              <option value="2026-04">Abril 2026</option>
-                              <option value="2026-05">Mayo 2026</option>
-                              <option value="2026-06">Junio 2026</option>
-                            </select>
-                          </div>
-
-                          {/* WEEK DAYS */}
-                          <div className="grid grid-cols-7 text-xs text-muted-foreground mb-3 px-2">
-                            {[
-                              "lun.",
-                              "mar.",
-                              "mié.",
-                              "jue.",
-                              "vie.",
-                              "sáb.",
-                              "dom.",
-                            ].map((d) => (
-                              <div key={d} className="text-center">
-                                {d}
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* CALENDARIO GRID */}
-                          <div className="grid grid-cols-7 gap-6 relative">
-                            {Array.from({ length: 30 }).map((_, i) => {
-                              const day = i + 1;
-                              const dateStr = `${month}-${String(day).padStart(2, "0")}`;
-
-                              const dayReservations = reservations.filter(
-                                (r) => {
-                                  return (
-                                    dateStr >= r.checkIn &&
-                                    dateStr <= r.checkOut
-                                  );
-                                },
-                              );
-
-                              return (
-                                <div
-                                  key={day}
-                                  onClick={() => setSelectedDate(dateStr)}
-                                  className={`bg-muted border border-border rounded-2xl p-3 h-32 flex flex-col justify-between hover:shadow-md hover:scale-[1.02] transition cursor-pointer ${
-                                    dateStr === todayStr
-                                      ? "border-blue-500 bg-blue-50"
-                                      : ""
-                                  } ${
-                                    selectedDate === dateStr
-                                      ? "ring-2 ring-blue-400"
-                                      : ""
-                                  }`}
-                                >
-                                  <div className="text-sm font-medium text-foreground">
-                                    {day}
-                                  </div>
-
-                                  <div className="space-y-1">
-                                    {dayReservations
-                                      .slice(0, 2)
-                                      .map((r, idx) => (
-                                        <div
-                                          key={idx}
-                                          title={`${r.name} - ${names[getKey(r)] || "Guest"} (${r.checkIn} → ${r.checkOut})`}
-                                          className={`text-[10px] px-2 py-1 rounded-full truncate hover:scale-105 transition ${
-                                            propertyColors[r.name] ||
-                                            "bg-muted text-foreground"
-                                          }`}
-                                        >
-                                          {r.name} ·{" "}
-                                          {names[getKey(r)] || "Guest"}
-                                        </div>
-                                      ))}
-
-                                    {dayReservations.length > 2 && (
-                                      <div className="text-[10px] text-blue-500 font-medium">
-                                        +{dayReservations.length - 2} más
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
+                        <Calendar
+                          reservations={reservations}
+                          month={month}
+                          setMonth={setMonth}
+                          selectedDate={selectedDate}
+                          setSelectedDate={setSelectedDate}
+                          names={names}
+                          getKey={getKey}
+                          propertyColors={propertyColors}
+                        />
                       </div>
                     </div>
                   )}
@@ -1123,43 +629,43 @@ export default function Home() {
                   {view === "documentacion" && (
                     <>
                       {/* ===================== DOCUMENTATION VIEW ===================== */}
-                    <div className="grid grid-cols-3 gap-6">
-                      <div
-                        onClick={() => router.push("/documentacion/neea")}
-                        className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm hover:shadow-md transition cursor-pointer"
-                      >
-                        <h3 className="text-lg font-semibold text-foreground">
-                          NEEA
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Documentación de propiedades NEEA
-                        </p>
-                      </div>
+                      <div className="grid grid-cols-3 gap-6">
+                        <div
+                          onClick={() => router.push("/documentacion/neea")}
+                          className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm hover:shadow-md transition cursor-pointer"
+                        >
+                          <h3 className="text-lg font-semibold text-foreground">
+                            NEEA
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Documentación de propiedades NEEA
+                          </p>
+                        </div>
 
-                      <div
-                        onClick={() => router.push("/documentacion/toh")}
-                        className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm hover:shadow-md transition cursor-pointer"
-                      >
-                        <h3 className="text-lg font-semibold text-foreground">
-                          Villas TOH
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Documentación Villas TOH
-                        </p>
-                      </div>
+                        <div
+                          onClick={() => router.push("/documentacion/toh")}
+                          className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm hover:shadow-md transition cursor-pointer"
+                        >
+                          <h3 className="text-lg font-semibold text-foreground">
+                            Villas TOH
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Documentación Villas TOH
+                          </p>
+                        </div>
 
-                      <div
-                        onClick={() => router.push("/documentacion/puebla")}
-                        className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm hover:shadow-md transition cursor-pointer"
-                      >
-                        <h3 className="text-lg font-semibold text-foreground">
-                          Puebla
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Documentación Puebla
-                        </p>
+                        <div
+                          onClick={() => router.push("/documentacion/puebla")}
+                          className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm hover:shadow-md transition cursor-pointer"
+                        >
+                          <h3 className="text-lg font-semibold text-foreground">
+                            Puebla
+                          </h3>
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Documentación Puebla
+                          </p>
+                        </div>
                       </div>
-                    </div>
                     </>
                   )}
                 </div>
