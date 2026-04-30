@@ -529,7 +529,7 @@ export default function Home() {
           {/* ===================== DASHBOARD LAYOUT ===================== */}
           <SidebarProvider>
             <div className="group/sidebar-wrapper flex min-h-screen w-full">
-              <AppSidebar view={view} setView={setView} user={user} />
+              <AppSidebar view={view} setView={setView} user={user} logout={logout} />
               <SidebarInset className="flex flex-1 flex-col bg-background text-foreground transition-all duration-200 md:ml-[var(--sidebar-width)] peer-data-[state=collapsed]:md:ml-[var(--sidebar-width-icon)]">
                 {/* HEADER */}
                 <header className="flex h-16 items-center gap-2 px-6 border-b border-border bg-card/70 backdrop-blur supports-[backdrop-filter]:bg-card/60 text-card-foreground shadow-sm">

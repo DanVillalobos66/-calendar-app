@@ -27,7 +27,7 @@ import {
 } from '@/components/ui/sidebar'
 
 // This is sample data.
-export function AppSidebar({ view, setView, user, ...props }: any) {
+export function AppSidebar({ view, setView, user, logout, ...props }: any) {
   const data = {
     user: {
       name: user?.user_metadata?.name || user?.email?.split("@")[0] || "Usuario",
@@ -41,6 +41,9 @@ export function AppSidebar({ view, setView, user, ...props }: any) {
         plan: "Empresa",
       },
     ],
+    navMain: [],
+    projects: [],
+    /*
     navMain: [
       {
         title: "Playground",
@@ -91,6 +94,7 @@ export function AppSidebar({ view, setView, user, ...props }: any) {
       { name: "Sales & Marketing", url: "#", icon: PieChart },
       { name: "Travel", url: "#", icon: Map },
     ],
+    */
   };
 
   return (
@@ -129,10 +133,11 @@ export function AppSidebar({ view, setView, user, ...props }: any) {
           </button>
         </div>
         <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
-      </SidebarContent>
+
+       {/* <NavProjects projects={data.projects} */}    
+       </SidebarContent>
       <SidebarFooter className="text-foreground">
-        <NavUser user={data.user} />
+        <NavUser user={data.user} onLogout={logout} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
