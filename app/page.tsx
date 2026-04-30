@@ -1,9 +1,13 @@
+// =====================
+// MAIN PAGE COMPONENT
+// =====================
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@supabase/supabase-js";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Sun, Moon } from "lucide-react";
+import StatsCards from "@/components/dashboard/StatsCards";
 import {
   SidebarInset,
   SidebarProvider,
@@ -11,6 +15,9 @@ import {
 } from "@/components/ui/sidebar";
 export default function Home() {
   const router = useRouter();
+  // =====================
+  // STATE MANAGEMENT
+  // =====================
   const [search, setSearch] = useState("");
   const [view, setView] = useState("reservations");
   const [reservations, setReservations] = useState<any[]>([]);
@@ -20,6 +27,9 @@ export default function Home() {
 
   const [totals, setTotals] = useState<Record<string, string>>({});
   const [editing, setEditing] = useState<Record<string, boolean>>({});
+  // =====================
+  // SUPABASE CONFIG
+  // =====================
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -65,6 +75,9 @@ export default function Home() {
   const [toast, setToast] = useState("");
   const [debounceTimers, setDebounceTimers] = useState<Record<string, any>>({});
 
+  // =====================
+  // AUTH FUNCTIONS
+  // =====================
   const login = async () => {
     if (!supabase) return alert("Supabase no configurado");
     if (!email || !password) return alert("Faltan datos");
@@ -107,6 +120,9 @@ export default function Home() {
 
   const role = user?.email === "admin@demo.com" ? "admin" : "viewer";
 
+  // =====================
+  // HELPERS & UTILITIES
+  // =====================
   const normalize = (v: any) => String(v || "").trim();
   const getKey = (r: any) =>
     `${normalize(r.name)}|${normalize(r.checkIn).slice(0, 10)}|${normalize(r.checkOut).slice(0, 10)}`;
@@ -284,6 +300,9 @@ export default function Home() {
     }
   };
 
+  // =====================
+  // AUTH EFFECTS
+  // =====================
   // Load user + listen auth changes
   useEffect(() => {
     if (!supabase) return;
@@ -304,6 +323,9 @@ export default function Home() {
     };
   }, [supabase]);
 
+  // =====================
+  // DATA FETCHING
+  // =====================
   // Load reservations
   useEffect(() => {
     fetch("/api/ical")
@@ -348,6 +370,9 @@ export default function Home() {
 
     loadFromDB();
   }, [user]);
+  // =====================
+  // CALCULATIONS & DERIVED DATA
+  // =====================
   const propertyColors: Record<string, string> = {
     "VILLAS TOH": "bg-blue-500 text-white",
     "NEEA 102": "bg-green-500 text-white",
@@ -381,6 +406,9 @@ export default function Home() {
 
   // ---------- END COMPONENTS ----------
 
+  // =====================
+  // UI RENDER
+  // =====================
   return (
     <div className="min-h-screen bg-background text-foreground">
       {loadingAuth ? (
@@ -388,62 +416,65 @@ export default function Home() {
           Cargando...
         </div>
       ) : !user ? (
-        <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background text-foreground p-6">
-          <div className="flex w-full max-w-sm flex-col gap-6">
-            {/* LOGO */}
-            <div className="flex items-center gap-2 self-center font-medium text-foreground">
-              <div className="flex size-6 items-center justify-center rounded-md bg-green-600 text-white">
-                🌿
-              </div>
-              GreenState
-            </div>
-
-            {/* CARD */}
-            <div className="bg-card rounded-2xl shadow-md border border-border p-6">
-              <div className="text-center mb-6">
-                <h2 className="text-xl font-semibold text-foreground">
-                  Bienvenido 👋
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Inicia sesión para continuar
-                </p>
+        <>
+          {/* ===================== LOGIN UI ===================== */}
+          <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background text-foreground p-6">
+            <div className="flex w-full max-w-sm flex-col gap-6">
+              {/* LOGO */}
+              <div className="flex items-center gap-2 self-center font-medium text-foreground">
+                <div className="flex size-6 items-center justify-center rounded-md bg-green-600 text-white">
+                  🌿
+                </div>
+                GreenState
               </div>
 
-              <div className="space-y-4">
-                <input
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Correo electrónico"
-                  className="w-full border border-border bg-muted text-foreground px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-card transition"
-                />
+              {/* CARD */}
+              <div className="bg-card rounded-2xl shadow-md border border-border p-6">
+                <div className="text-center mb-6">
+                  <h2 className="text-xl font-semibold text-foreground">
+                    Bienvenido 👋
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Inicia sesión para continuar
+                  </p>
+                </div>
 
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Contraseña"
-                  className="w-full border border-border bg-muted text-foreground px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-card transition"
-                />
+                <div className="space-y-4">
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Correo electrónico"
+                    className="w-full border border-border bg-muted text-foreground px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-card transition"
+                  />
 
-                <button
-                  onClick={isRegister ? register : login}
-                  className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
-                >
-                  {isRegister ? "Crear cuenta" : "Iniciar sesión"}
-                </button>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Contraseña"
+                    className="w-full border border-border bg-muted text-foreground px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-card transition"
+                  />
 
-                <p
-                  onClick={() => setIsRegister(!isRegister)}
-                  className="text-xs text-muted-foreground text-center cursor-pointer hover:text-foreground transition"
-                >
-                  {isRegister
-                    ? "¿Ya tienes cuenta? Inicia sesión"
-                    : "¿No tienes cuenta? Regístrate"}
-                </p>
+                  <button
+                    onClick={isRegister ? register : login}
+                    className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+                  >
+                    {isRegister ? "Crear cuenta" : "Iniciar sesión"}
+                  </button>
+
+                  <p
+                    onClick={() => setIsRegister(!isRegister)}
+                    className="text-xs text-muted-foreground text-center cursor-pointer hover:text-foreground transition"
+                  >
+                    {isRegister
+                      ? "¿Ya tienes cuenta? Inicia sesión"
+                      : "¿No tienes cuenta? Regístrate"}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
       ) : (
         <>
           {toast && (
@@ -451,6 +482,7 @@ export default function Home() {
               {toast}
             </div>
           )}
+          {/* ===================== DASHBOARD LAYOUT ===================== */}
           <SidebarProvider>
             <div className="group/sidebar-wrapper flex min-h-screen w-full">
               <AppSidebar view={view} setView={setView} />
@@ -509,158 +541,16 @@ export default function Home() {
                   {view === "reservations" && (
                     <div>
                       <div className="space-y-6">
-                        {/* CARDS */}
-                        <div className="grid grid-cols-4 gap-4">
-                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                            <p className="text-sm text-muted-foreground">
-                              Total Reservas
-                            </p>
-                            <p className="text-2xl font-semibold text-foreground">
-                              {reservations.length}
-                            </p>
-                          </div>
+                        {/* ===================== STATS CARDS ===================== */}
+<StatsCards
+  reservations={reservations}
+  properties={properties}
+  totals={totals}
+  getKey={getKey}
+  month={month}
+/>
 
-                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                            <p className="text-sm text-muted-foreground">
-                              Días Ocupados
-                            </p>
-                            <p className="text-2xl font-semibold text-foreground">
-                              {
-                                new Set(
-                                  (Array.isArray(reservations)
-                                    ? reservations
-                                    : []
-                                  ).flatMap((r) => {
-                                    const days = [];
-                                    let current = new Date(r.checkIn);
-                                    const end = new Date(r.checkOut);
-                                    while (current <= end) {
-                                      days.push(
-                                        current.toISOString().slice(0, 10),
-                                      );
-                                      current.setDate(current.getDate() + 1);
-                                    }
-                                    return days;
-                                  }),
-                                ).size
-                              }
-                            </p>
-                          </div>
-
-                          {/* NOCHES CARD */}
-                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                            <p className="text-sm text-muted-foreground">Noches</p>
-                            <p className="text-2xl font-semibold text-foreground">
-                              {reservations.reduce((acc, r) => {
-                                const start = new Date(r.checkIn);
-                                const end = new Date(r.checkOut);
-                                return (
-                                  acc +
-                                  (end.getTime() - start.getTime()) /
-                                    (1000 * 60 * 60 * 24)
-                                );
-                              }, 0)}
-                            </p>
-                          </div>
-
-                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                            <p className="text-sm text-muted-foreground">Propiedades</p>
-                            <p className="text-2xl font-semibold text-foreground">
-                              {properties.length}
-                            </p>
-                          </div>
-
-                          {/* SaaS Occupancy % card */}
-                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                            <p className="text-sm text-muted-foreground">
-                              Ocupación % (mes)
-                            </p>
-                            <p className="text-2xl font-semibold text-indigo-600">
-                              {(() => {
-                                const daysInMonth = new Date(month + "-01");
-                                const lastDay = new Date(
-                                  daysInMonth.getFullYear(),
-                                  daysInMonth.getMonth() + 1,
-                                  0,
-                                ).getDate();
-
-                                const uniqueDays = new Set<string>();
-                                reservations.forEach((r) => {
-                                  let d = new Date(r.checkIn);
-                                  const end = new Date(r.checkOut);
-                                  while (d <= end) {
-                                    const ds = d.toISOString().slice(0, 10);
-                                    if (ds.startsWith(month))
-                                      uniqueDays.add(ds);
-                                    d.setDate(d.getDate() + 1);
-                                  }
-                                });
-
-                                const totalPossible =
-                                  lastDay *
-                                  (new Set(reservations.map((r) => r.name))
-                                    .size || 1);
-                                if (!totalPossible) return "0%";
-                                const pct = Math.round(
-                                  (uniqueDays.size / totalPossible) * 100,
-                                );
-                                return `${pct}%`;
-                              })()}
-                            </p>
-                          </div>
-
-                          {/* ADR CARD */}
-                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                            <p className="text-sm text-muted-foreground">ADR</p>
-                            <p className="text-2xl font-semibold text-blue-600">
-                              {(() => {
-                                const paid = reservations.filter((r) => {
-                                  const key = getKey(r);
-                                  return totals[key];
-                                });
-
-                                const revenue = paid.reduce((acc, r) => {
-                                  const key = getKey(r);
-                                  return acc + Number(totals[key] || 0);
-                                }, 0);
-
-                                const nights = paid.reduce((acc, r) => {
-                                  const start = new Date(r.checkIn);
-                                  const end = new Date(r.checkOut);
-                                  return (
-                                    acc +
-                                    (end.getTime() - start.getTime()) /
-                                      (1000 * 60 * 60 * 24)
-                                  );
-                                }, 0);
-
-                                if (!nights) return "$0";
-                                return `$${Math.round(revenue / nights).toLocaleString()}`;
-                              })()}
-                            </p>
-                          </div>
-
-                          <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-4 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-                            <p className="text-sm text-muted-foreground">
-                              Ingresos Totales
-                            </p>
-                            <p className="text-2xl font-bold text-green-600">
-                              $
-                              {reservations
-                                .reduce((acc, r) => {
-                                  const key = getKey(r);
-                                  const raw = totals[key] || "";
-                                  const amount = raw
-                                    ? Number(String(raw).replace(/[^0-9]/g, ""))
-                                    : 0;
-                                  return acc + amount;
-                                }, 0)
-                                .toLocaleString()}
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* GRAFICA SIMPLE */}
+                        {/* ===================== CHARTS ===================== */}
                         <div className="bg-card/70 backdrop-blur rounded-2xl border border-border/60 p-6 shadow-sm">
                           <h3 className="text-lg font-semibold text-foreground mb-4">
                             Ocupación (visual)
@@ -944,6 +834,7 @@ export default function Home() {
                         </div>
                       </div>
                       <div className="mt-6">
+                        {/* ===================== RESERVATIONS TABLE ===================== */}
                         <div className="bg-card rounded-lg border border-border">
                           {/* TABLE HEADER */}
                           <div className="grid grid-cols-7 text-sm font-medium text-foreground border-b border-border p-3">
@@ -1120,7 +1011,12 @@ export default function Home() {
                         </div>
                       </div>
 
+
+
+
+
                       <div className="mt-6">
+                        {/* ===================== CALENDAR ===================== */}
                         <div className="bg-card rounded-2xl shadow-sm border border-border p-6">
                           {/* HEADER */}
                           <div className="flex justify-between items-center mb-6">
@@ -1225,6 +1121,8 @@ export default function Home() {
                   )}
 
                   {view === "documentacion" && (
+                    <>
+                      {/* ===================== DOCUMENTATION VIEW ===================== */}
                     <div className="grid grid-cols-3 gap-6">
                       <div
                         onClick={() => router.push("/documentacion/neea")}
@@ -1262,6 +1160,7 @@ export default function Home() {
                         </p>
                       </div>
                     </div>
+                    </>
                   )}
                 </div>
               </SidebarInset>
